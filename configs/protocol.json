@@ -1,0 +1,776 @@
+{
+  "packages": [
+    {
+      "blocks_per_dataset": 3,
+      "formal_screen": false,
+      "id": "M0",
+      "invalid_counts": [
+        4,
+        33
+      ],
+      "logical_count": 18,
+      "methods": [
+        "rcmp-probe-source-v2"
+      ],
+      "source_seed_offsets": [
+        200,
+        201,
+        202
+      ],
+      "unit": "source-preparation-protocol-outcome"
+    },
+    {
+      "behaviors": [
+        "honest",
+        "constant-accept",
+        "constant-reject",
+        "partial-50"
+      ],
+      "blocks_per_dataset": 80,
+      "id": "M1",
+      "invalid_counts": [
+        0,
+        1
+      ],
+      "logical_count": 3840,
+      "methods": [
+        "rcmp-probe-source-v2",
+        "hidden-gold-paid-v2"
+      ],
+      "new_count": 3840,
+      "reused_count": 0,
+      "unit": "service-assignment-opportunity"
+    },
+    {
+      "block_indices": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19
+      ],
+      "id": "M2",
+      "logical_count": 2100,
+      "methods": [
+        "rcmp-probe-source-v2",
+        "rcmp-audit-8-v2",
+        "rcmp-audit-all-v2",
+        "production-audit-8-v2",
+        "production-audit-all-v2"
+      ],
+      "new_count": 1800,
+      "reuse": "M1 R five shared scenarios, exact all-identity match only",
+      "reused_count": 300,
+      "scenarios": [
+        "honest-m0",
+        "honest-m1",
+        "constant-accept-m0",
+        "partial-50-m0",
+        "partial-50-m1",
+        "joint-targeted-cover-m1",
+        "joint-targeted-false-reject-m0"
+      ],
+      "unit": "service-assignment-opportunity"
+    },
+    {
+      "behaviors": [
+        "joint-cached-correct"
+      ],
+      "block_indices": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "id": "M2C",
+      "invalid_count": 1,
+      "logical_count": 54,
+      "methods": [
+        "rcmp-probe-source-v2",
+        "rcmp-audit-all-v2",
+        "production-audit-all-v2"
+      ],
+      "new_count": 54,
+      "role": "small-new-version-boundary-portability-check",
+      "unit": "service-assignment-opportunity"
+    },
+    {
+      "block_indices": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11
+      ],
+      "extra_probe_replay_calls": 1152,
+      "id": "M3",
+      "invalid_counts": [
+        0,
+        1
+      ],
+      "logical_count": 144,
+      "methods": [
+        "rcmp-probe-source-v2",
+        "hidden-gold-paid-v2"
+      ],
+      "unit": "paired-reference-comparison"
+    },
+    {
+      "admission": "rcmp-probe-source-v2",
+      "block_indices": [
+        0,
+        1,
+        2,
+        3,
+        8,
+        9,
+        10,
+        11,
+        16,
+        17,
+        18,
+        19,
+        23,
+        24,
+        25,
+        26
+      ],
+      "fault_counts": {
+        "correlated-missing": 4,
+        "insufficient-reserve": 4,
+        "no-missing": 4,
+        "one-missing": 4
+      },
+      "id": "M4L",
+      "invalid_count": 0,
+      "logical_count": 96,
+      "methods": [
+        "current-certified-ecs",
+        "fixed-order-same-reserve"
+      ],
+      "unit": "two-job-complete-recovery-run"
+    },
+    {
+      "admission_methods": [
+        "rcmp-probe-source-v2",
+        "rcmp-audit-all-v2",
+        "production-audit-all-v2"
+      ],
+      "block_indices": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11
+      ],
+      "colluder_counts_by_block": [
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        3,
+        3,
+        3,
+        3,
+        3,
+        3
+      ],
+      "id": "M4S",
+      "logical_count": 216,
+      "recovery": "current-certified-ecs",
+      "scenarios": [
+        "joint-targeted-cover-m1",
+        "joint-targeted-false-reject-m0"
+      ],
+      "unit": "two-job-complete-settlement-run"
+    },
+    {
+      "dataset_replication": false,
+      "graphs": [
+        "all-compatible",
+        "reserve-specialists-j0",
+        "reserve-specialists-j1",
+        "reserve-isolated-from-j1"
+      ],
+      "id": "M4B",
+      "identities": 9,
+      "logical_count": 2048,
+      "methods": [
+        "current-certified-ecs",
+        "fixed-order-same-reserve"
+      ],
+      "missing_subset_sizes": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "unique_graph_missing_cases": 1024,
+      "unit": "CPU-structural-policy-decision"
+    },
+    {
+      "admission": "rcmp-probe-source-v2",
+      "block_indices": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "graphs": [
+        "reserve-specialists-j0",
+        "reserve-isolated-from-j1"
+      ],
+      "id": "M4X",
+      "invalid_count": 0,
+      "logical_count": 72,
+      "methods": [
+        "current-certified-ecs",
+        "fixed-order-same-reserve"
+      ],
+      "missing_identities": [
+        "v0",
+        "v3"
+      ],
+      "unit": "two-job-complete-scarce-recovery-run"
+    },
+    {
+      "counterfactuals": [
+        "no-recovery",
+        "zero-replacement-budget",
+        "deadline-at-first-timeout"
+      ],
+      "dataset_replication": "source-trace-identity-only",
+      "id": "M4T",
+      "logical_count": 504,
+      "not_actual_new_callbacks": true,
+      "source_runs": [
+        "M4L",
+        "M4X"
+      ],
+      "unit": "CPU-trace-policy-replay"
+    },
+    {
+      "behavior": "honest",
+      "block_indices": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11
+      ],
+      "id": "M5",
+      "invalid_counts": [
+        0,
+        1
+      ],
+      "logical_count": 432,
+      "methods": [
+        "owner-direct-v2",
+        "plain-delegation-v2",
+        "rcmp-probe-source-v2",
+        "hidden-gold-paid-v2",
+        "rcmp-audit-all-v2",
+        "production-audit-all-v2"
+      ],
+      "no_cross_arm_free_reference_cache": true,
+      "production_tasks": 32,
+      "required_verifiers_in_delegated_arms": 3,
+      "standalone_scope": "independently measured legal-input online suffix; shared measured trainer prefix explicitly itemized, never called a separately repeated end-to-end run",
+      "unit": "complete-job-cost-lifecycle-with-shared-measured-trainer-prefix"
+    },
+    {
+      "behaviors": [
+        "honest",
+        "partial-50"
+      ],
+      "block_indices": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "descriptive_only": true,
+      "id": "M6",
+      "invalid_count": 1,
+      "logical_count": 216,
+      "methods": [
+        "rcmp-probe-source-v2",
+        "hidden-gold-paid-v2"
+      ],
+      "new_count": 144,
+      "reused_count": 72,
+      "unit": "service-assignment-opportunity",
+      "workloads": [
+        {
+          "batch_size": 2,
+          "steps": 4
+        },
+        {
+          "batch_size": 2,
+          "steps": 16
+        },
+        {
+          "batch_size": 32,
+          "steps": 4
+        }
+      ]
+    },
+    {
+      "baseline_reuse": "M5 exact first6 m1 identities; 54 existing rows, not additional count",
+      "behavior": "honest",
+      "block_indices": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "id": "M6C",
+      "invalid_count": 1,
+      "logical_count": 108,
+      "methods": [
+        "owner-direct-v2",
+        "plain-delegation-v2",
+        "rcmp-probe-source-v2"
+      ],
+      "standalone_scope": "independently measured legal-input online suffix; shared measured trainer prefix explicitly itemized, never called a separately repeated end-to-end run",
+      "unit": "complete-job-cost-lifecycle-with-shared-measured-trainer-prefix",
+      "workloads": [
+        {
+          "batch_size": 2,
+          "steps": 16
+        },
+        {
+          "batch_size": 32,
+          "steps": 4
+        }
+      ]
+    },
+    {
+      "anchors": [
+        32,
+        512,
+        2048
+      ],
+      "behaviors": [
+        "honest",
+        "partial-50"
+      ],
+      "extra_probe_replay_calls": 432,
+      "full_convergence_claim": false,
+      "id": "M7",
+      "independent_units": "3 trajectories per dataset; anchors/branches clustered",
+      "invalid_count": 1,
+      "logical_count": 108,
+      "methods": [
+        "rcmp-probe-source-v2",
+        "hidden-gold-paid-v2"
+      ],
+      "new_count": 108,
+      "source_kind": "40 independently sampled short branch continuations from actual model+optimizer+BN milestone; same canonical training engine",
+      "source_workload": {
+        "batch_size": 2,
+        "steps": 4
+      },
+      "training_batch_size": 64,
+      "training_steps": 2048,
+      "trajectories_per_dataset": 3,
+      "trajectory_seed_offsets": [
+        400,
+        401,
+        402
+      ],
+      "unit": "service-assignment-opportunity"
+    },
+    {
+      "actual_prior_rule": "[0.5-epsilon,0.25,0.25,epsilon]",
+      "benchmark": "native PoL four-observation two-verifier game",
+      "costs": [
+        0.3333333333333333,
+        2,
+        2,
+        2
+      ],
+      "dataset_replication": false,
+      "delta": 0.2,
+      "deterministic_strategies": 260,
+      "epsilon": [
+        0,
+        0.01,
+        0.03,
+        0.05
+      ],
+      "id": "M8",
+      "infeasible_is_valid_result": true,
+      "logical_count": 12,
+      "lp_feasibility_tolerance": 1e-08,
+      "methods": [
+        "ctf-pp-published-rounded-table8",
+        "ctf-pp-min-K-LP-delta0.2",
+        "simple-agreement-best-affine-under-same-constraints"
+      ],
+      "observation_matrix": [
+        [
+          1,
+          0,
+          0,
+          0
+        ],
+        [
+          0.5,
+          0.5,
+          0,
+          0
+        ],
+        [
+          0.5,
+          0,
+          0.5,
+          0
+        ],
+        [
+          0.5,
+          0.125,
+          0.125,
+          0.25
+        ]
+      ],
+      "principal_belief_matrix": [
+        [
+          0.8333333333333334,
+          0.08333333333333333,
+          0.08333333333333333,
+          0
+        ],
+        [
+          0.5,
+          0.5,
+          0,
+          0
+        ],
+        [
+          0.5,
+          0,
+          0.5,
+          0
+        ],
+        [
+          0.5,
+          0.125,
+          0.125,
+          0.25
+        ]
+      ],
+      "principal_prior": [
+        0.5,
+        0.25,
+        0.25,
+        0
+      ],
+      "published_score": [
+        [
+          2.069,
+          -7.1451,
+          -7.1451,
+          -2.2507
+        ],
+        [
+          -2.0446,
+          6.4446,
+          -4.7421,
+          -2.0022
+        ],
+        [
+          -2.0446,
+          -4.7421,
+          6.4446,
+          -2.0022
+        ],
+        [
+          -2.2,
+          5.8,
+          5.8,
+          7.4
+        ]
+      ],
+      "rounding_comparison_tolerance": 0.0005,
+      "scope": "native mechanism reproduction; not CTF end-to-end training or binary SEVC report substitution",
+      "source": "https://arxiv.org/html/2406.01794v5#A12",
+      "unit": "CPU-native-published-mechanism-cell"
+    }
+  ],
+  "schema_version": "sevc-public-scientific-protocol-v1",
+  "science": {
+    "analytical_sanity": {
+      "assumptions": "perfect-references and actual-replay-correct, 4 challenges, 20 of40 uniformly skipped, h2",
+      "not_a_new_rate_gate": true,
+      "not_observations": true,
+      "partial_service_pass": "sum(j=0,1) C(4,j)C(36,20-j)/C(40,20)",
+      "partial_service_pass_value": 0.3024948024948025,
+      "partial_wrong_production_admitted": "sum(j=0,1) C(4,j)C(35,19-j)/C(40,20)",
+      "partial_wrong_production_admitted_value": 0.16112266112266113
+    },
+    "bootstrap": {
+      "draws": 20000,
+      "seed": 2026119000
+    },
+    "claim_decisions": {
+      "expected_boundary": "informative outcome; not failure of a promise that explicitly excludes that target",
+      "in_scope_counterexample": "claim NEGATIVE; continue remaining registered measurements; no post-hoc scope relabelling",
+      "inconclusive": "INDETERMINATE; do not turn wide intervals or no difference into failure",
+      "paper_disclosure": "all results material to claims, comparison fairness and applicability; internal debugging logs retained in evidence, not all printed"
+    },
+    "comparison_statistics": {
+      "continuous": "paired-block-bootstrap-20000-percentile-95%-descriptive",
+      "global_joint_95_percent_claim": false,
+      "paired_service_comparison": {
+        "confirmatory_superiority_or_noninferiority_claim": false,
+        "difference_estimator": "(n_R_only_error-n_G_only_error)/80",
+        "endpoint": "block OR of any actually admitted incorrect production report over registered nonhonest behaviors and loads; pair R and G",
+        "family_alpha": 0.05,
+        "interval": "For six discordance probabilities (2 directions x 3 datasets), use two-sided Clopper-Pearson intervals at alpha=.05/6; dataset risk-difference interval=[L_Ronly-U_Gonly,U_Ronly-L_Gonly]",
+        "issuance_reporting": "show complete paired preparation/issuance/defer contingency beside unconditional event risk; report issued-only secondary subsets with actual denominators, not n80",
+        "label": "paired-risk-difference-and-discordance",
+        "legacy_margin_005_is_gate": false,
+        "margin": null,
+        "no_difference_is_not_failure": true,
+        "number_of_tests": 3,
+        "scope": "RCMP/gold exact-paired episode outcomes; report issuance and conditional service denominators"
+      },
+      "small_subgroups": "raw denominators and descriptive exact intervals; no low-risk certification"
+    },
+    "core_workload": {
+      "batch_size": 2,
+      "learning_rate": 0.01,
+      "momentum": 0.9,
+      "mutation_checkpoints": "last-two-signed-suffix-atoms",
+      "mutation_magnitude": 4e-05,
+      "precision": "FP32",
+      "steps": 4,
+      "tolerance": 1e-05,
+      "training_stage": "random-initialization-short-segment"
+    },
+    "dataset_order": [
+      "cifar10",
+      "mnist",
+      "cifar100"
+    ],
+    "datasets": {
+      "cifar10": {
+        "blocks": 80,
+        "model": "resnet18",
+        "sample_range": [
+          0,
+          40000
+        ],
+        "seed_start": 2026112000
+      },
+      "cifar100": {
+        "blocks": 80,
+        "model": "resnet18",
+        "sample_range": [
+          0,
+          40000
+        ],
+        "seed_start": 2026113000
+      },
+      "mnist": {
+        "blocks": 80,
+        "hidden_widths": [
+          512,
+          512
+        ],
+        "model": "small-mlp",
+        "sample_range": [
+          0,
+          50000
+        ],
+        "seed_start": 2026111000
+      }
+    },
+    "information_views": [
+      "verifier-delivered-material-only",
+      "trainer-plus-verifier-shared-canonical-proofs-and-private-source-cache"
+    ],
+    "methods": {
+      "A8": "rcmp-audit-8-v2",
+      "AA": "rcmp-audit-all-v2",
+      "D": "plain-delegation-v2",
+      "G": "hidden-gold-paid-v2",
+      "O": "owner-direct-v2",
+      "P8": "production-audit-8-v2",
+      "PA": "production-audit-all-v2",
+      "R": "rcmp-probe-source-v2"
+    },
+    "namespace": "tdsc-balanced-five-rq-v3",
+    "prices": {
+      "bond": 0.5,
+      "bond_sensitivity": [
+        0,
+        0.5,
+        1
+      ],
+      "calibration_provenance": "historical three-dataset technical-validation-04 frozen constants; not new 8/8 calibration",
+      "cost_multipliers": [
+        0.5,
+        1,
+        2
+      ],
+      "cost_unit": "per-dataset-frozen-technical-validation-honest-RCMP-assignment-mean-seconds",
+      "fee": 1.25,
+      "fee_sensitivity": [
+        1,
+        1.25,
+        1.5,
+        2
+      ],
+      "invalid_bundle_priors": [
+        0,
+        0.01,
+        0.05,
+        0.5
+      ],
+      "liquidity_rate": 0.01,
+      "sensitivity_kind": "fixed-strategy-analytical-reweighting-not-new-observations"
+    },
+    "primary_statistics": {
+      "endpoints_per_dataset": [
+        "honest_false_penalty_union_over_loads",
+        "constant_action_paid_union_over_two_constants_and_loads",
+        "partial50_wrong_production_admitted_union_over_loads"
+      ],
+      "family": "M1-nine-prespecified-block-risks",
+      "family_alpha": 0.05,
+      "interpretation": "estimate-and-uncertainty-not-a-common-pass-threshold",
+      "legacy_005_reference_is_gate": false,
+      "method": "exact-Clopper-Pearson-at-block-level",
+      "number_of_tests": 9,
+      "one_sided_alpha": 0.005555555555555556,
+      "prerequisite_failures": "separate-valid-protocol-terminal-with-fixed-denominators; not-counted-as-successful-service",
+      "primary_denominator": "all80 prescribed source blocks; event means actually issued-and-observed event; separately report issuance/deferral and conditional-on-issued risks",
+      "raw_unissued_measurement": "null-not-zero; event-cannot-occur is not counted as successful service",
+      "risk_upper_target": null
+    },
+    "random_streams": {
+      "expanded_lock_required": true,
+      "private_owner_roles": "independent concealed 256-bit seed, committed before measurement; released to offline auditor after reports, never given to actors",
+      "public_block_seed": "dataset.seed_start + predeclared offset/index",
+      "stream_identity": "namespace/dataset/source-seed/scenario/method/purpose; exact reuse shares original complete identity, not a regenerated pseudo-replicate"
+    },
+    "recovery": {
+      "activation_lanes": 1,
+      "capacity_per_identity": 1,
+      "certificate_G": 7,
+      "certificate_N": 9,
+      "certificate_eta": 0.925,
+      "deadline_rule": "12*timeout",
+      "expenditure_multiplier_cap": 3,
+      "jobs": 2,
+      "minimum_eligible_reports_per_segment": 3,
+      "no_reward_or_accusation_on_defer": true,
+      "owner_reserve_rule": "max(1,10*max_owner_admission_cost_units_in_blind_validation)",
+      "population": 9,
+      "primary_admission": "rcmp-probe-source-v2",
+      "primary_per_job": 3,
+      "removal_budget": 0,
+      "reputation": 0.9,
+      "reserve": 3,
+      "rho": 0.95,
+      "timeout_rule": "max(1s,1.5*maximum_honest_validation_assignment_wall_seconds_across_registered_methods)",
+      "unavailability_bound": 0.2222222222222222
+    },
+    "source": {
+      "candidate_attempt_cap": 40,
+      "challenge_tasks": 4,
+      "control_tasks": 4,
+      "evaluation_truth_to_controller": false,
+      "expected_reference_count_if_only_registered_tamper_invalid": "m0:8; m1:8-or-9; actual-count-is-authoritative",
+      "hidden_gold_extra_sources": 8,
+      "invalid_id_rule": "distinct IDs (24+j) mod40 for j=0..m-1",
+      "invalid_source_counts": [
+        0,
+        1
+      ],
+      "owner_reference": "bounded-on-demand-actual-replay; stop-search-after-8-valid-or-40-attempts; failed-attempts-charged",
+      "paired_production_counterfactual": "baseline receives matched 32 IDs only; RCMP derives them online from all40 without seeing paired P or truth; target-conditioned contrast, not unconditional random-sampling equivalence",
+      "partial_strategy": "uniform-without-replacement replay half delivered tasks; default accept on skipped tasks; no role truth",
+      "precommit_invalid_index_start": 24,
+      "probe_failure_threshold": 2,
+      "production": "complement-of-8-selected-probe-source-ids; includes-failed-probe-candidates",
+      "production_tasks": 32,
+      "reference_cache": "within-one-job-only-by-exact-source-identity; no-cross-arm-or-job-free-cache",
+      "reference_failure_outcome": "INSUFFICIENT_VALID_REFERENCES_SAFE_DEFER; no-campaign-stop",
+      "role_assignment": "postcommit-secret-uniform-priority-over-all-40; take-first-8-actually-replay-valid-sources; no-declared-valid-24-stratum",
+      "source_spec": "source-reference-contract.md",
+      "trainer_sources": 40
+    },
+    "stop": {
+      "completion": "all-frozen-units-attempted-and-accounted; issued-vs-prerequisite-boundary-separate; no-scientific-success-assertion",
+      "expected_boundaries": [
+        "correct-cache-payment",
+        "A8-sparse-miss",
+        "partial-50-may-be-paid-or-admit-a-wrong-report",
+        "reference-exhaustion-safe-defer",
+        "over-certificate-defer",
+        "CPU-baseline-infeasible-in-native-model"
+      ],
+      "known_cache_or_partial_payment_stops_other_groups": false,
+      "paper_route": "PAPER_CHANGE_REQUIRED",
+      "scientific_early_stop": false,
+      "technical_failure": "pause-affected-unit-only; preserve-hashes; resume-unaffected-units; global-pause-only-for-common-corrupt-input/oracle-leak/unsafe-device-or-unknown-writer",
+      "terminal_values": [
+        "PASS",
+        "ACCEPTED_NEGATIVE",
+        "VOID_RERUN"
+      ],
+      "valid_negative": "preserve-and-complete-every-frozen-dataset-package-and-control; no-result-based-redesign-rerun",
+      "verdict_spec": "decision-and-continuation.md"
+    }
+  }
+}
