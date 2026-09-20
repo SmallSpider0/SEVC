@@ -5,8 +5,12 @@
       "sha256": "0c5a06537648173fa6aa6b1bafc7059f4d0bb51e684b8c1b27ad00a9f39cafa2"
     },
     {
+      "relative_path": "LICENSE",
+      "sha256": "f0e3d881c1fef3dac35d02fed3eedd98eabec3dc61dfc39a47332d92f17c323e"
+    },
+    {
       "relative_path": "README.md",
-      "sha256": "2f9c8d138f9bfcf73ccc71cdba299878d441f37989233f3000da261684c0da8a"
+      "sha256": "ddc266fc1c93d89bfae50846f4a11889490458cd71130b33c565fabf2ee277f1"
     },
     {
       "relative_path": "SOURCE_RELEASE.md",

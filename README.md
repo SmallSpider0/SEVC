@@ -139,7 +139,7 @@ This is a one-time source distribution. The development project remains separate
 there is no automatic synchronization or ongoing development commitment for this
 snapshot. `public-manifest.json` records the distributed source files and hashes.
 
-A redistribution license has not yet been selected. The repository owner must
-add the intended license and any required notices before public release. No
-license grant, author contact information, or public repository URL is invented
-by this snapshot.
+The source in this repository is released under the MIT License; see `LICENSE`.
+The license covers this source snapshot only: no dataset, model weight or
+experimental result is distributed with it, and no author contact information is
+invented by this snapshot.
