@@ -13,6 +13,8 @@ def graph_conflicts(graph):
         return {"v7": ("j0",), "v8": ("j0",)}
     if graph == "reserve-isolated-from-j1":
         return {f"v{i}": ("j1",) for i in (6, 7, 8)}
+    if graph == "three-only-j1":
+        return {f"v{i}": ("j1",) for i in (0,1,2,6,7,8)}
     raise ValueError("unregistered compatibility graph")
 
 
@@ -70,14 +72,14 @@ def audit_trace(trace, assignments=()):
         assert event['job_id'] not in conflicts.get(event['verifier_id'],()), 'incompatible callback'
         if event['status']=='DROPOUT':
             assert event['verifier_id'] in trace['missing_identities'], 'invented missing identity'
-            assert receipt['fee']==0 and receipt['slashed_bond']==.5, 'missing payment drift'
+            assert receipt['fee']==0 and receipt['slashed_bond']==trace.get('service_bond',.5), 'missing payment drift'
         elif assignments:
             row=reports[event['job_id'],event['verifier_id']]
             assert row['settlement']['status']==event['status'], 'recovery admission drift'
             for key in ('service_fee','slashed_bond','verifier_cost'):
                 assert receipt['settlement'][key]==row['settlement'][key], 'recovery payment drift'
     for job,decision in trace['decisions'].items():
-        reserved=trace['owner_prepaid_cost_per_job']+sum(e['job_id']==job for e in events)*(1.25+trace['owner_work_reserve_per_assignment'])
+        reserved=trace['owner_prepaid_cost_per_job']+sum(e['job_id']==job for e in events)*(trace.get('service_fee',1.25)+trace['owner_work_reserve_per_assignment'])
         assert abs(reserved-trace['reserved_expenditure'][job])<1e-7, 'reservation conservation'
         assert reserved<=trace['budget_cap_per_job']+1e-7, 'budget exceeded'
         if decision['route']=='safe-defer':
@@ -89,10 +91,40 @@ def audit_trace(trace, assignments=()):
         if assignments:
             rs=[reports[job,v]['report'] for v in committee]
             # Task roles are evidence metadata used solely by this auditor.
-            target_ids=trace['required_ids']
+            target_ids=trace.get('required_ids_by_job',{}).get(job,trace['required_ids'])
             maps=[dict(zip(r['ordered_segment_ids'],r['verdicts'])) for r in rs]
             accept=all(sum(m[t] is True for m in maps)>len(maps)/2 for t in target_ids)
             assert decision['route']==('accept' if accept else 'reject'), 'trainer vote decision drift'
         assert decision['trainer_reward']==float(decision['route']=='accept'), 'trainer payment drift'
         assert decision['misconduct']==int(decision['route']=='reject'), 'trainer punishment drift'
     return {'status':'AUDIT_PASS','callbacks':len(events),'completed_jobs':sum(d['route']!='safe-defer' for d in trace['decisions'].values())}
+
+
+def arbitrary_conflict_witness(conflicts, missing):
+    """Structural optimum after compatible fixed primaries; no time/budget oracle."""
+    identities = {f'v{i}' for i in range(9)}
+    absent = {f'v{i}' if isinstance(i, int) else i for i in missing}
+    if not absent <= identities or not set(conflicts) <= identities:
+        raise ValueError('unknown identity')
+    if any(not set(jobs) <= {'j0', 'j1'} for jobs in conflicts.values()):
+        raise ValueError('unknown job')
+    primary = {'j0': [], 'j1': []}
+    consumed = set()
+    for i in range(6):
+        v, j = f'v{i}', f'j{i//3}'
+        if j not in conflicts.get(v, ()):
+            consumed.add(v)
+            if v not in absent:
+                primary[j].append(v)
+    residual = sorted(identities - consumed - absent)
+    best, witness = -1, None
+    for destinations in itertools.product((None, 'j0', 'j1'), repeat=len(residual)):
+        if any(j in conflicts.get(v, ()) for v, j in zip(residual, destinations) if j):
+            continue
+        assigned = {j: primary[j] + [v for v, d in zip(residual, destinations) if d == j]
+                    for j in primary}
+        completed = sum(len(members) >= 3 for members in assigned.values())
+        if completed > best:
+            best, witness = completed, assigned
+    return {'maximum_completed_jobs': best, 'witness': witness,
+            'scope': 'compatible fixed primary then residual capacity; time/budget excluded'}

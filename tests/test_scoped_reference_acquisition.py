@@ -25,11 +25,13 @@ def test_stops_on_eight_actual_valid_references_and_never_prevalidates_populatio
     assert events[0]["event"] == "role-seed-committed"
 
 
-def test_exhausted_valid_population_defers_and_preserves_all_failed_attempts():
+def test_exhausted_valid_population_rejects_on_owner_failures_and_preserves_attempts():
     refs, calls, events = fixture(set(IDS[:7]))
     out = acquire_probe_sources(IDS, secret_hex="ab" * 32, references=refs)
     assert len(calls) == 40 and len(set(calls)) == 40
-    assert out["status"] == "INSUFFICIENT_VALID_REFERENCES_SAFE_DEFER"
+    assert out["status"] == "OWNER_REPLAY_REJECT"
+    assert out["trainer_terminal"] == "reject" and out["misconduct_finding"] is True
+    assert sorted(out["rejecting_attempts"]) == sorted(IDS[7:])
     assert not out["issued"] and len(out["selected_ids"]) == 7
     assert sum(not r["passed"] for r in out["attempts"]) == 33
     assert len([e for e in events if e["event"] == "reference-replay"]) == 40

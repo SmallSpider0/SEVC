@@ -6,19 +6,23 @@
     },
     {
       "relative_path": "README.md",
-      "sha256": "2d4183c3fe7e815584c26e4b3eeacbf80105762dcc8a974e0a0c5b121a80ecba"
+      "sha256": "2f9c8d138f9bfcf73ccc71cdba299878d441f37989233f3000da261684c0da8a"
     },
     {
       "relative_path": "SOURCE_RELEASE.md",
-      "sha256": "76008fa99a470d825251916e8fa491e6f3af1954174779cb19ef4a8c1255978b"
+      "sha256": "8c51d696160725812fb300b8b3212c8e7c4127597a46d9636f1e76fbfa451774"
     },
     {
       "relative_path": "configs/protocol.json",
       "sha256": "a8cc1b0e91a154923e9b4e270085890ea6daff0cca1efa3300a5614fdf72a268"
     },
     {
+      "relative_path": "configs/tdsc_replay_tolerance_heterogeneity_v1.json",
+      "sha256": "b9849927886ebd4e6737051357fd28019f5256eb8129045ac0956d067845323f"
+    },
+    {
       "relative_path": "docs/experiments.md",
-      "sha256": "3f8bf39f75e8ec527486b48f199296e14e79b572f1ea05e23771fff3f64e0ea1"
+      "sha256": "4bf44260a0d9f7824a08078c28f414b90b0667808f8c5271da45d5482e2f451d"
     },
     {
       "relative_path": "docs/inputs.md",
@@ -57,12 +61,24 @@
       "sha256": "a41b78ca14c2a18531d36a7d0ef2f605e1d3df55e9ec946a7ce1f60e4c3f14e7"
     },
     {
+      "relative_path": "sevc/committee/depol_arbitration.py",
+      "sha256": "58f40c94cdf8339788d2f9a1bcdc40db2033ab39d0a34f0a1345b64da8b77248"
+    },
+    {
+      "relative_path": "sevc/committee/executable_recovery.py",
+      "sha256": "e15eb61b846a5629b82698e2a090445bb5e3b0f6f9657dbcd3d146598959e829"
+    },
+    {
       "relative_path": "sevc/committee/executed_recovery.py",
-      "sha256": "daea94b146b0f007f2c16d79d4e3729ea74093d5d810e3e2880f1a3cd3421dc8"
+      "sha256": "5318843a9b1d66c311f41a6d96ccc369c14704cda1a3d68558affbb72bca9c13"
     },
     {
       "relative_path": "sevc/committee/formation.py",
       "sha256": "b1c4b1d3ce57af7e16c7a29039ce3d019fbb3aa26bb8242d13c868713e60232f"
+    },
+    {
+      "relative_path": "sevc/committee/recovery_game.py",
+      "sha256": "367f0cd7e6f32138ee0b0a3db9841bf47640ac450ec8dd98766f512303db916a"
     },
     {
       "relative_path": "sevc/committee/reliability.py",
@@ -70,11 +86,19 @@
     },
     {
       "relative_path": "sevc/core/__init__.py",
-      "sha256": "c1c3f39bdf432049044198f28113ca011f35dd3705bf1919ad38ed7950c39c2d"
+      "sha256": "f64bcdcc46eacf57d5aedb6d39425954ce85fba064c06b9481ac84132cba709d"
+    },
+    {
+      "relative_path": "sevc/core/absolute_resources.py",
+      "sha256": "f617a35b87765ad7f1edafaf17a51eca492ddbb6c6400af84183be81f23100d1"
     },
     {
       "relative_path": "sevc/core/artifacts.py",
-      "sha256": "0ea177ed75d82c8802ee99e6c44e68dbde135fc66a87d3f3c20ad8758ef9900c"
+      "sha256": "a67ad446e88a39afc20ae4854d4fd106771dc4a893d164b16a52cbd2dc803774"
+    },
+    {
+      "relative_path": "sevc/core/evidence_rows.py",
+      "sha256": "a1544c9361efea14f98370d0f930e66ff00cf4b110a14050d23e650c46e7ad0c"
     },
     {
       "relative_path": "sevc/core/operation_probe.py",
@@ -85,12 +109,28 @@
       "sha256": "be97bcae7701b33109685a9598a9ed84c3e6a9fa3eea4074cd45b81af94f6be8"
     },
     {
+      "relative_path": "sevc/core/replay_environment.py",
+      "sha256": "6613bd5b414a46e5ec71e9193c127a14ec9d4764e4acdccf2ca65ca6fb523b4d"
+    },
+    {
       "relative_path": "sevc/core/role_accounting.py",
-      "sha256": "19199fde7e702d55dcc5750f6a707ab22d0aa32fb59e9e99e7dbf3f8adfaca29"
+      "sha256": "5ebc9641302c7763268c0409ae714edfa6b2fbfa3f55b04f2a6966cd0a045924"
     },
     {
       "relative_path": "sevc/core/runtime.py",
-      "sha256": "293f0a1345621a7f5f2002e85e7e285bdb1e76eb2ccceadfda1cb16ba6d763fb"
+      "sha256": "cf02976780c3a5816b7766e67fb9919387515871f7a656394be8453bac523ce6"
+    },
+    {
+      "relative_path": "sevc/core/scratch_budget.py",
+      "sha256": "71ffb6f795d35ce63940831757ec95d9ac8bf53d59557736cc19000021134dc3"
+    },
+    {
+      "relative_path": "sevc/core/scratch_cleanup.py",
+      "sha256": "be710db9a4ff8a7090399214664f1e5d5aa32406482098f4d8d5356768d74e4a"
+    },
+    {
+      "relative_path": "sevc/core/statistical_bounds.py",
+      "sha256": "0580bb14da70313e7618adfd86c823c94a3bdb6c468531de8fac3a8ba6ec1a8a"
     },
     {
       "relative_path": "sevc/core/task_lanes.py",
@@ -98,7 +138,11 @@
     },
     {
       "relative_path": "sevc/core/tensor_storage.py",
-      "sha256": "caf84256119af00d193e89116fc7a68ee32b304810d90f556d427fb0e3e867b2"
+      "sha256": "01752a9e40e81a465e9604a7cecf29137ec24527825ebdf8037ef6efda7403cd"
+    },
+    {
+      "relative_path": "sevc/core/trajectory_storage.py",
+      "sha256": "11a7981ee45deacb593ae0301a5206da59ce68d50b71216bf8ce8ab48d752b7f"
     },
     {
       "relative_path": "sevc/data/__init__.py",
@@ -125,40 +169,100 @@
       "sha256": "f3d37ba98955b03d2d724cecda275da6d80b3be33900f1ef54b5b1d715bc7232"
     },
     {
+      "relative_path": "sevc/evaluation/action_certificate.py",
+      "sha256": "1e6bf39369b29330193f0cb24f621ff67c39bb5c3509c8fef84d0040273b707b"
+    },
+    {
+      "relative_path": "sevc/evaluation/cheap_discriminator_tiny.py",
+      "sha256": "cae6d894950defe076b4931a62b682c1f61b1443e7e86dba885a746900d90a38"
+    },
+    {
+      "relative_path": "sevc/evaluation/cost_incentive_reanalysis.py",
+      "sha256": "0cfd9c47a61a5d25b7b7db71e4475f273dfad7641c2fa5a5257ef79311a1cfe7"
+    },
+    {
+      "relative_path": "sevc/evaluation/depol_shared_shortcut.py",
+      "sha256": "e567c138ac8f7749143723fe11d04843727a12f1e57d62d2e76555576994194b"
+    },
+    {
+      "relative_path": "sevc/evaluation/detection_supplement.py",
+      "sha256": "1083080b629a729154ae26aa28785261239e8c53ced97fb1330c7f67050bda9c"
+    },
+    {
+      "relative_path": "sevc/evaluation/f_fixed_design.py",
+      "sha256": "c480fe8816e71bc94169e47c82635b133754dcc4339c121b6029bfb410d34e02"
+    },
+    {
+      "relative_path": "sevc/evaluation/f_rq234_audit.py",
+      "sha256": "005dfc28c2c0458b4cb64466cfa22884a8cc6250a454f7807f5d4968566d1d74"
+    },
+    {
+      "relative_path": "sevc/evaluation/f_rq_audit.py",
+      "sha256": "3714c25a76b15d94aec23f2811f8a8e32339bb5e52480fc37d5420a552f7f4e5"
+    },
+    {
       "relative_path": "sevc/evaluation/five_rq_evidence.py",
-      "sha256": "57332c1061c7cc58b595d81787b04347c7adbda98d4b2ce854794c64cdf8a554"
+      "sha256": "54ded2be955e3307afbe1148070ccc9f1af0539544514c97923b998909941748"
+    },
+    {
+      "relative_path": "sevc/evaluation/joint_evidence.py",
+      "sha256": "5ab8ac7614d9c28fa3fbb5668918630f95a7697607752b4937ec60ea798f3a74"
+    },
+    {
+      "relative_path": "sevc/evaluation/local_tiny_feasibility.py",
+      "sha256": "863f12dd11951ef912e401f5d892b6b7972e55c412a398fe4f1581fcd5b5a2cb"
+    },
+    {
+      "relative_path": "sevc/evaluation/overhead_supplement.py",
+      "sha256": "f0cb5968a2199adfdded05e08fd2d62dca576dab1cb02f870e59d9801438807e"
+    },
+    {
+      "relative_path": "sevc/evaluation/owner_failure_branch_audit.py",
+      "sha256": "1238ce5c7084fbb0a7387d38654b040df7642411164b9935fdc3470010576b9f"
     },
     {
       "relative_path": "sevc/evaluation/rcmp_gates.py",
-      "sha256": "896f6cf9cb2e37fc8b7372e4a768ab8c9e5b274e60bbc7447368709dd2d1f748"
+      "sha256": "65124a45fad52e0441c10167c2d79919634387cc94f21260fdcdb47a1ee5cbd7"
+    },
+    {
+      "relative_path": "sevc/evaluation/recovery_enumeration.py",
+      "sha256": "3925793b103f32a7d1c6da5704844e181e0a2c0b7108c3472e53ca1ae3c7b9a8"
     },
     {
       "relative_path": "sevc/evaluation/recovery_graph_audit.py",
-      "sha256": "8383611cd31814d5f0274c6c3de69ecb1d4907c74ff7459c869ede23c7f3876f"
+      "sha256": "eb8f8a465ce6c3fcb9e7dbbfa7105aa4888b3e75d977dc712eb83a08f835d960"
     },
     {
       "relative_path": "sevc/evaluation/scoped_campaign_contract.py",
-      "sha256": "42a72c33c9e27606bff23efcd7b561c4a2eecdad0d8e2521d0b5b551285c99bd"
+      "sha256": "5cc8688ffa33dcd89e2b61c624264cd9405fce1537aaee8b32471e9a61665f35"
     },
     {
       "relative_path": "sevc/evaluation/scoped_forecast.py",
-      "sha256": "167e139ed3ee01a87825611d85c9dd11ac0a34e57ee30563a89d2ef6ffe85076"
+      "sha256": "33d712e40d9bc69a7c72d7a239b4502c78c6cbc4e96290eb9d875e5040321be8"
     },
     {
       "relative_path": "sevc/evaluation/scoped_result_audit.py",
-      "sha256": "d649492c800f5064441cfb0781e6cddeadb17c3a6252bcefa0fb3eabb45fd74b"
+      "sha256": "4700bc31f1b00ef749c36555b592beb958e40b2b93b03b92c6d630779554bbf1"
     },
     {
       "relative_path": "sevc/evaluation/scoped_statistics.py",
-      "sha256": "c5fd2e418e86b493b7f212b10602d45b4b750f2fcd5dc06a3e2cfdffce6b11c0"
+      "sha256": "608698559a16df31c1b863e5da699dc5604ddce9251d6d13f65f4b97329b9266"
+    },
+    {
+      "relative_path": "sevc/evaluation/server_unlock_evidence.py",
+      "sha256": "3b08cccb45e25d78748f9021a169165b39550362eb21c810e86405f5c00b039d"
     },
     {
       "relative_path": "sevc/evaluation/statistics.py",
       "sha256": "981693cbef9aac87f0b0757ae114e945cdece912e6763e74e488f65412dcb6ff"
     },
     {
+      "relative_path": "sevc/evaluation/submission_tiny.py",
+      "sha256": "911f4a456da709beacd5c64d6fc4cadc15875cea8fa5de3252390c13be101d6b"
+    },
+    {
       "relative_path": "sevc/evaluation/tdsc_comp_e0_freeze.py",
-      "sha256": "f534a2370be10990ab45df2097d139dd9a7b3dee7a8099449acd9f3c6684fc42"
+      "sha256": "9f2748b2c1ed829846df734d67b747cc172f4293a121c5af666170476be5d449"
     },
     {
       "relative_path": "sevc/evaluation/tdsc_direct_execution.py",
@@ -178,23 +282,71 @@
     },
     {
       "relative_path": "sevc/evaluation/trainer_population_scale.py",
-      "sha256": "fad98371a2d3feee1293f2a13259b5bc1ffc5b4c77fe109a1bc9fbe074535e8a"
+      "sha256": "cba347d3d50b5f4a14fc22ba756803abae5e490a1102f4a80d5bf282172fbcfa"
+    },
+    {
+      "relative_path": "sevc/evaluation/value_preserving_recovery.py",
+      "sha256": "9b0bf77343fab83471b25c852f28547203cdfb4a22d1489066f0f56addf8ad25"
+    },
+    {
+      "relative_path": "sevc/evaluation/verifier_view_linkability.py",
+      "sha256": "5e67de5883c5d2a4b9999d9f38ef847ea0c1b43ffe7c5d7000427d4f4fa74b89"
     },
     {
       "relative_path": "sevc/evaluation/workload_performance.py",
-      "sha256": "b07286ccf73fddeb2edd4602cd63d2171e333938c5e1580d71482c07d90beafc"
+      "sha256": "3db33e007ff4a40bbbb6aa6b01aeaececaab3f6d01205a0b3f11ee7cdc771092"
     },
     {
       "relative_path": "sevc/experiments/__init__.py",
       "sha256": "ccf620f9070b16119e98a697142720f3564d732ceb53e2834a47d995b44305ed"
     },
     {
+      "relative_path": "sevc/experiments/cheap_discriminator_tiny.py",
+      "sha256": "17ed02f958e62b4421a94589b21eec55510e880c7408b0a9488463e2279b2029"
+    },
+    {
+      "relative_path": "sevc/experiments/detection_supplement.py",
+      "sha256": "f3a9be66109c05fa7b84a28aa896cd52baf4b49c9b9fb50b827be2f143f70c56"
+    },
+    {
+      "relative_path": "sevc/experiments/f_fixed_design.py",
+      "sha256": "14b735d36d0e9a44a24355d431cd2c63f0c96b08105893e779a5f89f35c86e67"
+    },
+    {
+      "relative_path": "sevc/experiments/local_tiny_feasibility.py",
+      "sha256": "4478e957e5a70b2cf125f660ca8b5be0f9d9340a842465ec66838f684647c640"
+    },
+    {
+      "relative_path": "sevc/experiments/minimal_prerepair.py",
+      "sha256": "041b91819224261c48a4704c03fea7483b65ac529ca7dbd3c8079a7acd39dc83"
+    },
+    {
+      "relative_path": "sevc/experiments/overhead_continuation.py",
+      "sha256": "71fcfd3e038f596db41aa4af33d363af50220599d4b775e5cf7d2027cc3d920c"
+    },
+    {
+      "relative_path": "sevc/experiments/overhead_supplement.py",
+      "sha256": "0e43c7f407a53b51d99984283d52f247465f74eefd2703fc8bc840b0d6416997"
+    },
+    {
+      "relative_path": "sevc/experiments/owner_cost_repair.py",
+      "sha256": "1e7b342f95ebaa52eefcd03c240fe1a87f06e0265d6534404a48d8a146427081"
+    },
+    {
+      "relative_path": "sevc/experiments/probe_compute_tiny.py",
+      "sha256": "daa803294c63c2db61f65de4c437b8e7a40732d81b2de5dfab61628ad9a56225"
+    },
+    {
       "relative_path": "sevc/experiments/prototype.py",
       "sha256": "b021d3233d07c2a9f1a8bed1b2e3c745a48eebeaa4c6cdf0d700a0bb706569c0"
     },
     {
+      "relative_path": "sevc/experiments/recovery_enumeration.py",
+      "sha256": "96f46c241cb058c615be7db025dadf7733e899c00b3afb89133c86a1b50814a2"
+    },
+    {
       "relative_path": "sevc/experiments/registry.py",
-      "sha256": "fcbce0c9fb8f8a1bb584f32dee1f341e585fe74c436fd1a2fa2891855f55883c"
+      "sha256": "3b04f9b6f047ca999aed067b3f8e35013cd1a7350bfc9abcdab63c2ac316df92"
     },
     {
       "relative_path": "sevc/experiments/runner.py",
@@ -202,39 +354,63 @@
     },
     {
       "relative_path": "sevc/experiments/scoped_five_rq_units.py",
-      "sha256": "cd1c3cfbbf3856e8de465afd874d23c1c05b2d868b3ba29afa81f14a5f4e2f0c"
+      "sha256": "13cb0b5544c368117b832026cb928372808b4bcc450d6390a2b9773757f2fa1c"
+    },
+    {
+      "relative_path": "sevc/experiments/server_unlock_evidence.py",
+      "sha256": "ac091adf5ea20fc9df93592059c605f8cb6ad7186f4cbf02c1935299a24c7913"
     },
     {
       "relative_path": "sevc/experiments/source_distribution.py",
       "sha256": "1c4ffa839ab492d0ecddaf3b8ca440a6ea2f86eb979c10392ab6d0619ddf7a9f"
     },
     {
+      "relative_path": "sevc/experiments/source_variants.py",
+      "sha256": "ee9d0e45ce641e53886bf2b4d2787961edf10ca2eae775e7880ccc5f329d6d70"
+    },
+    {
+      "relative_path": "sevc/experiments/submission_acceleration.py",
+      "sha256": "a7fa6bfb02c2436c8ea7ac6e1f76dea54e1fa235212553a11ca344d14066a689"
+    },
+    {
+      "relative_path": "sevc/experiments/submission_continuation.py",
+      "sha256": "6c61d001f3ba6527706c61f002635c790e41d9b47735256d1d17783e71ddfb5c"
+    },
+    {
+      "relative_path": "sevc/experiments/submission_tiny.py",
+      "sha256": "6de65a3477daa5b80abc384759d76afa393f43e317313a14428595e378e813cd"
+    },
+    {
       "relative_path": "sevc/experiments/tdsc_adaptive_recognizer.py",
-      "sha256": "bc6220cd3050d22cfd91ffdae3955e7dbc603283eaaec0676779b97bda6b7160"
+      "sha256": "87aebc8cb3196421afd36d7ccdf63c980b804456fb79c437582a271311d52815"
     },
     {
       "relative_path": "sevc/experiments/tdsc_canonical_probe_certificate.py",
-      "sha256": "7ed60e531a2f2db90ba6d8a3c1ea6e1443639e0e32bb52f7a342f31eb6358ca1"
+      "sha256": "785fc6ac6b10f8ec48074110b23ccc00b8a7eb0529132172d8cc263e20a197ad"
     },
     {
       "relative_path": "sevc/experiments/tdsc_comparative_robustness.py",
-      "sha256": "351a2cde0b592a42ae8ad1a1c8deaced4eba3001c3ee29752f13cf6e0fac86cc"
+      "sha256": "5b2d367cf5f8788d7b380da14e42d0226bd5fdcfb2adf4486f7e7c6b0179de79"
     },
     {
       "relative_path": "sevc/experiments/tdsc_five_rq_evidence.py",
-      "sha256": "699604707c950fcd9fb4f6bc7edb9a1edebeb9292827c94eb22ad51d4e50906d"
+      "sha256": "68992101ee277d217ddb578141262d391b7106bc7e440818bbf2aaa3fc820179"
+    },
+    {
+      "relative_path": "sevc/experiments/tdsc_replay_tolerance.py",
+      "sha256": "13db6da0e55844d0b83c2f24b6fb860b9be802b2653b6a26ef2a5213d600889a"
     },
     {
       "relative_path": "sevc/experiments/tdsc_sampling_replay_stress.py",
-      "sha256": "b30046dd54f82855439217de3931b3480c9d2bb016e63707487f3546623cce93"
+      "sha256": "c81c61a921e373e4d68716d2923b0abc0d69d396019944ce47f6c0b6623e47e2"
     },
     {
       "relative_path": "sevc/experiments/tdsc_sevc_ablation_frontier.py",
-      "sha256": "06d6ca32bc0dd726fa9c9bdd77116b81a814980b7390e1ef9536338d6fe8df5f"
+      "sha256": "2840deecf1d77f2afc5aa2bca1a52f3e265e6f73fe2a0524aace50e66c62bf9e"
     },
     {
       "relative_path": "sevc/experiments/tdsc_system_overhead.py",
-      "sha256": "cec647321348dd94725204623272b5684416c709eb39a7efeff522f4d9ad6ba2"
+      "sha256": "f1542f2bd504614fbf34186f2765a0816ef23045c0585b3a6833da6ae9b8fcb8"
     },
     {
       "relative_path": "sevc/incentives/__init__.py",
@@ -246,7 +422,7 @@
     },
     {
       "relative_path": "sevc/incentives/native_peer_prediction.py",
-      "sha256": "8d9d72d5ff46babd51b0138134429242fde3dc9b46c12e33376db29f638e3a92"
+      "sha256": "ea10a36a1f4e82dc848d51f97de39a463d339b37e1b74a4d3c7fcfae1541b7a7"
     },
     {
       "relative_path": "sevc/incentives/verifier_protocol.py",
@@ -258,7 +434,7 @@
     },
     {
       "relative_path": "sevc/incentives/verifier_roster_certification.py",
-      "sha256": "5a0447550c0273958cebcfe21d93b4574fa2b716933bc24466dd7524e231ecae"
+      "sha256": "ded726a17851e26440e6f282652ccef0e33a09486843e1a7bbd42587cfd4ad36"
     },
     {
       "relative_path": "sevc/models/__init__.py",
@@ -273,6 +449,10 @@
       "sha256": "7903214557ff1eac8bc307f3a1368a230ef2e78c461f092ab18ef0feffa5c5e2"
     },
     {
+      "relative_path": "sevc/reputation/calibration.py",
+      "sha256": "f274bf941bfad405f06712acdc5fb73f6a3804243f3e7fde5789b0c7d339569e"
+    },
+    {
       "relative_path": "sevc/reputation/estimator.py",
       "sha256": "5b44ddea1c1d0c2507fc3d1316622dd0e21c40ae90fcd3971eee941247521f4f"
     },
@@ -282,7 +462,7 @@
     },
     {
       "relative_path": "sevc/training/engine.py",
-      "sha256": "2a5cf3a6c3f4bd289b481a08bbdc3d96ec781392f53c1242ff7a6df7faeb5d4f"
+      "sha256": "b997801ffa2b150f3652c311d9a71f64a6c935c0585ab38628b0ad62c08b8e3c"
     },
     {
       "relative_path": "sevc/training/replay_sources.py",
@@ -290,7 +470,7 @@
     },
     {
       "relative_path": "sevc/training/replay_state.py",
-      "sha256": "55a9a976814ff051a84dd4621653d40dd283751854bcc8523b1d406c938b4663"
+      "sha256": "8286ef483027aaa8b9a4bf57b88342c81912b64bc6076754f2f8b97a9e09ac9e"
     },
     {
       "relative_path": "sevc/verification/__init__.py",
@@ -298,7 +478,19 @@
     },
     {
       "relative_path": "sevc/verification/adaptive_recognizer.py",
-      "sha256": "954364babde11503d8bfb77aa5f1d70a4b5da385921c956434d3e6bbe1045f8f"
+      "sha256": "3ce09a3ea713748bd02ca2b9321a5e643f2cc619f1e0003e280f11f97c7d3ec8"
+    },
+    {
+      "relative_path": "sevc/verification/cheap_discriminator.py",
+      "sha256": "8b11154f3d350da939e1622e696591ed9b075a085d36f9d649e5f7b5d5ea11cd"
+    },
+    {
+      "relative_path": "sevc/verification/depol_local.py",
+      "sha256": "88d8703faae14fcbbc735844d82d14c1ec8d3ae79c0ef44ee0ed57fa83afda0a"
+    },
+    {
+      "relative_path": "sevc/verification/disclosure.py",
+      "sha256": "82181e776f1e6153f2601f7fac71629dd0c5f7ef45147b352f37d1a9ff83518b"
     },
     {
       "relative_path": "sevc/verification/methods.py",
@@ -306,23 +498,27 @@
     },
     {
       "relative_path": "sevc/verification/on_demand_service.py",
-      "sha256": "ecc7ce8ecb47c5deb12a2ee1876b4f4f941b953e1387dff2a43849520008c9a6"
+      "sha256": "6dd883ac068e54579f90b17248c4d9246587120f06f27b83c935aed798a9600c"
     },
     {
       "relative_path": "sevc/verification/paid_replay_service.py",
-      "sha256": "5565b7772d1fc554323a2a623c78e2cc4629bb2262fc7ec9b09b5b834cc6f197"
+      "sha256": "2d1bf8a75de0938cbc961481cad97d01ef88d3ed96857c9a6210a96e3cab4e63"
     },
     {
       "relative_path": "sevc/verification/production_audit.py",
       "sha256": "3eb12fec1b6ee0b06c716f4c4ae002ed25da1bbf06d89a612b5670bdf013fbd7"
     },
     {
+      "relative_path": "sevc/verification/public_replay_shortcuts.py",
+      "sha256": "14b3747d3b9712166e12fd0e5fee4a1702076f86a63090e61f13fa6a6cd84d69"
+    },
+    {
       "relative_path": "sevc/verification/reference_acquisition.py",
-      "sha256": "5e0b295b152d73478a505ed633ee582fad71f872c9d9f6167ddb96a604e89dfa"
+      "sha256": "0d79300e0f4bc071da8e5787f135ae610c522b00b477a201a87957953f96d5be"
     },
     {
       "relative_path": "sevc/verification/replay_coupled_probes.py",
-      "sha256": "37c493eba5fcf41294b3cfe1a0d26a43dd621804bd68ff5104f9e01b10716557"
+      "sha256": "d8bf6b614870b762a600c30f1d578570ea7e0e899f2412c61336132275168b16"
     },
     {
       "relative_path": "sevc/verification/robust_aggregation.py",
@@ -342,15 +538,27 @@
     },
     {
       "relative_path": "sevc/verification/verifier_task_policies.py",
-      "sha256": "d05389321e891588cb3ab7cbd57d384ed6046991d6c29932928ba8cd2975a44f"
+      "sha256": "9df9bcf16a3d1e018b6e0a998b0df09f3189dc5cf5b457eb7b7b2a6d6d17ad0d"
     },
     {
       "relative_path": "tests/conftest.py",
-      "sha256": "e8c4b87e3c1b3d89d0f188a4a1053dfd3db1914eb3706dcbe27f901757e2ef7b"
+      "sha256": "9d8318519d571cc2c0e82c8e83f6aaa1e6255a4fea3e5cdd4d87f7d87ffd1c27"
+    },
+    {
+      "relative_path": "tests/test_cost_incentive_reanalysis.py",
+      "sha256": "846a68b4dcf2b5770e8f857ebb3a7d909abd988989e3c777b251a50452c50cf7"
+    },
+    {
+      "relative_path": "tests/test_depol_shared_shortcut.py",
+      "sha256": "e8efdd6990ee0aa6bd5ff01eb27822431290d363ba04d708a1ca37d643833b14"
     },
     {
       "relative_path": "tests/test_distribution.py",
       "sha256": "18feeb8955dc58774d3623b51d12d28dce51721b897c8eac9a3a3b3f5fbfb2ca"
+    },
+    {
+      "relative_path": "tests/test_owner_failure_branch_audit.py",
+      "sha256": "4b50f65be532c699b048240eba4e7e3e5568332902aa6b77157e97e0553089f4"
     },
     {
       "relative_path": "tests/test_replay_coupled_probes.py",
@@ -361,8 +569,12 @@
       "sha256": "6cb426223c4345180344ba5ceed5eab91907d05c9d41ec482b59230fbea27c43"
     },
     {
+      "relative_path": "tests/test_replay_tolerance.py",
+      "sha256": "bd9e76f67a4d1fe7929021aa59ef101ed15234e6cbcc9a1ca3f0a91b342cd4ad"
+    },
+    {
       "relative_path": "tests/test_scoped_reference_acquisition.py",
-      "sha256": "eb38ec3dbb397cb929a14378a7d866ce9c9305649abaeb31777fa0087326ecea"
+      "sha256": "377bea3e8459fe51f382b4c3f533eb74336ea191dfe5ee64ee616e55cabd9ef4"
     },
     {
       "relative_path": "tests/test_scoped_statistics.py",
@@ -370,7 +582,11 @@
     },
     {
       "relative_path": "tests/test_service_and_recovery.py",
-      "sha256": "10b885cc894b1f42ecf135fec2c2a9ee0535f978a7dc027eb3d1dc03a93def9c"
+      "sha256": "ca1b8ce1392416c2207926563f489c0b60accadf52f3a88ce858e04a51c19a02"
+    },
+    {
+      "relative_path": "tests/test_verifier_view_linkability.py",
+      "sha256": "8ce8a7c36ea4353d96fdd566a533fbea8e3d0514146da9812f9e50dd0c24e26b"
     }
   ],
   "schema_version": "sevc-public-source-manifest-v1",

@@ -535,14 +535,31 @@ def score_threshold_report(
     *,
     failure_threshold: int,
     sentinel_only: bool = False,
+    required_probe_ids: Sequence[str] | None = None,
 ) -> tuple[str, int, int]:
     """Apply technical-failure filtering before threshold integrity scoring."""
 
     if failure_threshold <= 0:
         raise ValueError("failure_threshold must be positive")
-    if not report.committed:
+    if not report.committed or (required_probe_ids is not None and not report.revealed):
         return "DROPOUT", 0, 0
     by_id = {item.segment_id: item for item in evaluation_bundle.segments}
+    if required_probe_ids is not None:
+        required = tuple(required_probe_ids)
+        if not required or len(set(required)) != len(required):
+            raise ValueError("required probe identities must be nonempty and unique")
+        if report.scenario_id != evaluation_bundle.scenario_id:
+            raise ValueError("report/reference scenario mismatch")
+        # Only owner-authenticated reference failures may remove comparability.
+        # An actor's missing answer is a mismatch, not a technical exemption.
+        if not set(required).issubset(report.ordered_segment_ids):
+            return "FAIL_CONFIRMED", len(set(required) - set(report.ordered_segment_ids)), 0
+        unavailable = sum(
+            k not in by_id or by_id[k].technical_failure or not by_id[k].is_sentinel
+            for k in required
+        )
+        if unavailable:
+            return "TECHNICAL_FAILURE", 0, unavailable
     mismatch_count = 0
     technical_count = 0
     comparable_count = 0
@@ -848,11 +865,13 @@ def settle_threshold_assignment(
     report: CommittedVerifierReport, evaluation_bundle: SealedEvaluationTruth, *,
     failure_threshold: int, fee: float, bond: float, cost: float, effort: float,
     sentinel_only: bool = False,
+    required_probe_ids: Sequence[str] | None = None,
 ) -> VerifierSettlement:
     """Shared threshold service transfer law for one committed assignment."""
     status, mismatches, technical = score_threshold_report(
         report, evaluation_bundle, failure_threshold=failure_threshold,
         sentinel_only=sentinel_only,
+        required_probe_ids=required_probe_ids,
     )
     passed = status == "PASS"
     slashed = bond if status in {"FAIL_CONFIRMED", "DROPOUT"} else 0.0

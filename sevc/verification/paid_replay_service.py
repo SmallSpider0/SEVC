@@ -35,7 +35,10 @@ BEHAVIOR_KEYS = ("honest", "zero-effort-fixed-prior-constant", "partial-50",
                  "joint-view-targeted-cover")
 REPAIR_BEHAVIOR_KEYS = BEHAVIOR_KEYS + ("joint-cached-correct",)
 SCOPED_BEHAVIOR_KEYS = REPAIR_BEHAVIOR_KEYS + ("constant-accept", "constant-reject",
-                                            "joint-targeted-cover", "joint-targeted-false-reject")
+                                            "joint-targeted-cover", "joint-targeted-false-reject",
+                                            "source-binding-shortcut", "sgd-consistency-shortcut", "partial-90",
+                                            "softmax-bias-shortcut", "low-rank-gradient-shortcut",
+                                            "uniform-k32", "uniform-k39", "prefix-one-step-shortcut", "cheap-recognizer-k32")
 TASK_MECHANISMS = Registry("paid replay task mechanism")
 TASK_MECHANISMS.add("rcmp-source-coupled", False)
 TASK_MECHANISMS.add("independent-hidden-gold", True)
@@ -373,7 +376,8 @@ def execute_assignment(tasks: tuple[DeliveredReplay, ...], *, behavior: str, tra
                        context, seed: int, assignment_id: str, clock: WorkClock, performance: Mapping,
                        emit_commit: Callable[[dict], None], job_id: str | None = None,
                        verifier_id: str | None = None,
-                       trainer_answer_cache: Mapping[str, bool] | None = None):
+                       trainer_answer_cache: Mapping[str, bool] | None = None,
+                       precommit_fault_task_id: str | None = None):
     """Effort decisions see only public delivered tasks and trainer-owned commitments."""
     if behavior not in SCOPED_BEHAVIOR_KEYS:
         raise KeyError(behavior)
@@ -381,7 +385,18 @@ def execute_assignment(tasks: tuple[DeliveredReplay, ...], *, behavior: str, tra
         if (trainer_answer_cache is None or set(trainer_answer_cache) != set(trainer_hashes)
                 or any(type(v) is not bool for v in trainer_answer_cache.values())):
             raise ValueError("cached-correct strategy requires the trainer's own complete answer cache")
-    selected = set(t.task_id for t in sorted(tasks, key=lambda t: derive_int(seed, "partial", t.task_id))[:len(tasks)//2])
+    fraction = .9 if behavior == "partial-90" else .5
+    count = int(behavior.removeprefix("uniform-k")) if behavior.startswith("uniform-k") else int(len(tasks)*fraction)
+    if behavior.startswith("uniform-k") and count > len(tasks):
+        raise ValueError("uniform effort exceeds delivered task count")
+    selected = set(t.task_id for t in sorted(tasks, key=lambda t: derive_int(seed, "partial", t.task_id))[:count])
+    if behavior == "cheap-recognizer-k32":
+        selector = performance.get("cheap_selector")
+        if selector is None:
+            raise PermissionError("frozen disclosed-history recognizer is required")
+        selected, _ = clock.call("recognizer_selection", "verifier", selector, tasks, clock)
+        if len(selected) != 32 or not set(selected) <= {t.task_id for t in tasks}:
+            raise ValueError("recognizer replay quota or task identity drift")
     false_reject_target = None
     if behavior == "joint-targeted-false-reject":
         # A source handle can identify a trainer-known accepting source, but it
@@ -392,13 +407,57 @@ def execute_assignment(tasks: tuple[DeliveredReplay, ...], *, behavior: str, tra
     schema_model = context.factory().cpu()
     def execute_task(task):
         clock.context.update(task_id=task.task_id, behavior=behavior)
-        replay = behavior == "honest" or (behavior == "partial-50" and task.task_id in selected)
+        replay = behavior == "honest" or ((behavior in {"partial-50", "partial-90", "cheap-recognizer-k32"} or behavior.startswith("uniform-k")) and task.task_id in selected)
         verdict, matched, canonical = behavior != "constant-reject", False, None
         start = time.monotonic()
         proof = task.proof
-        needs_payload = replay or behavior.startswith("joint-") or not performance.get("lazy_payload_read", False)
+        shortcut = behavior in {"source-binding-shortcut", "sgd-consistency-shortcut", "softmax-bias-shortcut",
+                                "low-rank-gradient-shortcut", "prefix-one-step-shortcut"}
+        shortcut_receipt = None
+        needs_payload = replay or shortcut or behavior.startswith("joint-") or not performance.get("lazy_payload_read", False)
         if needs_payload and isinstance(proof, StoredReplayProof):
-            proof, _ = clock.call("verifier_payload_read", "verifier", proof.load)
+            selector=performance.get('cheap_selector') if behavior=='cheap-recognizer-k32' else None
+            if selector is not None and hasattr(selector,'load_for_replay'):
+                proof, _ = clock.call("verifier_payload_read", "verifier", selector.load_for_replay, task)
+            else:
+                proof, _ = clock.call("verifier_payload_read", "verifier", proof.load)
+        if shortcut:
+            if behavior == "prefix-one-step-shortcut":
+                from sevc.training.engine import _tensor_sequence_sha256
+                (canonical, _), _ = clock.call("prefix_canonicalize", "verifier", canonicalize_replay_proof,
+                    proof, schema_model, task.descriptor, protocol_version=VERSION, wrapper_seed_domain=WRAPPER_DOMAIN)
+                prefix = replace(canonical, batches=canonical.batches[:1], checkpoints=canonical.checkpoints[:1],
+                                 optimizer_checkpoints=canonical.optimizer_checkpoints[:1],
+                                 data_order_sha256=_tensor_sequence_sha256(canonical.batches[:1]))
+                shortcut_receipt, _ = clock.call("prefix_replay", "verifier", verify_replay_proof,
+                    prefix, context.cached_replay_factory if performance.get("reuse_replay_model") else context.factory,
+                    device=context.device.name, tolerance=1e-5,
+                    comparison_device=performance.get("comparison_device", "cpu"))
+                shortcut_receipt = {**shortcut_receipt, "prefix_steps": 1, "full_replay": False}
+                verdict = bool(shortcut_receipt["passed"])
+            elif behavior == "source-binding-shortcut":
+                (canonical, _, hashes, _), _ = clock.call("public_binding_canonicalize_hash", "verifier",
+                    canonicalize_replay_proof_with_identity, proof, schema_model, task.descriptor,
+                    protocol_version=VERSION, wrapper_seed_domain=WRAPPER_DOMAIN)
+                verdict = hashes["proof_sha256"] == task.source_commitment
+                shortcut_receipt = {"canonical_matches_public_binding": verdict}
+            else:
+                from sevc.verification.public_replay_shortcuts import sgd_public_consistency, softmax_bias_gradient_consistency
+                # SGD identities commute with the legal public channel permutation.
+                shortcut_receipt, _ = clock.call("public_sgd_consistency", "verifier",
+                    sgd_public_consistency, proof, tolerance=1e-5)
+                if behavior in {"softmax-bias-shortcut", "low-rank-gradient-shortcut"}:
+                    bias, _ = clock.call("public_softmax_bias", "verifier",
+                        softmax_bias_gradient_consistency, proof, tolerance=1e-5)
+                    shortcut_receipt = {**shortcut_receipt, "softmax_bias": bias,
+                                        "passed": shortcut_receipt["passed"] and bias["passed"]}
+                if behavior == "low-rank-gradient-shortcut":
+                    from sevc.verification.public_replay_shortcuts import low_rank_gradient_consistency
+                    rank, _ = clock.call("public_gradient_rank", "verifier",
+                        low_rank_gradient_consistency, proof, tolerance=1e-5)
+                    shortcut_receipt = {**shortcut_receipt, "gradient_rank": rank,
+                                        "passed": shortcut_receipt["passed"] and rank["passed"]}
+                verdict = shortcut_receipt["passed"]
         if behavior in {"joint-view-targeted-cover", "joint-cached-correct",
                         "joint-targeted-cover", "joint-targeted-false-reject"}:
             # Commitment lookup alone does not label the delivered derivative.
@@ -442,10 +501,22 @@ def execute_assignment(tasks: tuple[DeliveredReplay, ...], *, behavior: str, tra
                     comparison_device=performance.get("comparison_device", "cpu"))
             verdict = bool(result["passed"])
         end = time.monotonic()
-        return verdict, {"task_id": task.task_id, "replayed": replay, "matched_trainer_commitment": matched,
-                         "start":start,"end":end,"elapsed_seconds":end-start}
+        detail = {"task_id": task.task_id, "replayed": replay, "matched_trainer_commitment": matched,
+                  "start":start,"end":end,"elapsed_seconds":end-start}
+        if shortcut_receipt is not None:
+            detail["public_shortcut"] = shortcut_receipt
+        return verdict, detail
     rows = context.task_lanes(performance.get("task_lanes",1)).map(execute_task,tasks,clock)
     verdicts, execution = [r[0] for r in rows], [r[1] for r in rows]
+    if precommit_fault_task_id is not None:
+        # Explicit laboratory fault injection, never an inferred adversarial
+        # frequency or an answer supplied to ordinary effort strategies.
+        ids = [t.task_id for t in tasks]
+        if behavior != "honest" or precommit_fault_task_id not in ids:
+            raise ValueError("invalid pre-commit report fault fixture")
+        position = ids.index(precommit_fault_task_id)
+        verdicts[position] = not verdicts[position]
+        execution[position]["precommit_injected_flip"] = True
     charges = shared_wall_charges([(r["start"],r["end"]) for r in execution])
     for row, charge in zip(execution,charges):
         row["seconds"] = charge
@@ -465,20 +536,24 @@ def execute_assignment(tasks: tuple[DeliveredReplay, ...], *, behavior: str, tra
 
 
 def settle_service(report: CommittedVerifierReport, references: OwnerProbeReferences, *,
-                   cost_seconds: float, effort_fraction: float, fee: float = 1.25, bond: float = .5):
+                   cost_seconds: float, effort_fraction: float, fee: float = 1.25, bond: float = .5,
+                   failure_threshold: int = 2, require_complete_probes: bool = False):
     """Only the eight owner probe answers enter this live service gate."""
     if type(references) is not OwnerProbeReferences:
         raise TypeError("live scoring requires the restricted owner probe reference view")
     by_id = dict(zip(report.ordered_segment_ids, report.verdicts))
-    if not set(dict(references.answers)).issubset(by_id):
+    if not require_complete_probes and not set(dict(references.answers)).issubset(by_id):
         raise ValueError("committed report omitted required probe identities")
     answers = dict(references.answers)
+    if require_complete_probes and sum(answers.values()) != 4:
+        raise ValueError("complete service requires four controls and four challenges")
     # Production placeholders carry no audit truth and the shared scorer skips them.
     score_view = SealedEvaluationTruth(report.scenario_id, tuple(
         SealedSegmentTruth(k, answers.get(k, False), k in answers)
         for k in report.ordered_segment_ids))
     if not report.revealed:
         report = replace(report, committed=False, revealed=False)
-    result = settle_threshold_assignment(report, score_view, failure_threshold=2,
-        fee=fee, bond=bond, cost=cost_seconds, effort=effort_fraction, sentinel_only=True)
+    result = settle_threshold_assignment(report, score_view, failure_threshold=failure_threshold,
+        fee=fee, bond=bond, cost=cost_seconds, effort=effort_fraction, sentinel_only=True,
+        required_probe_ids=tuple(answers) if require_complete_probes else None)
     return replace(result, job_id=report.job_id)

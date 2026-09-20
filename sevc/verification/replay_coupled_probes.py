@@ -633,6 +633,8 @@ def canonicalize_replay_proof(
         protocol_version=protocol_version,
         wrapper_seed_domain=wrapper_seed_domain,
     )
+    if forward.mode == "identity":
+        return proof, forward
     inverse = inverse_replay_state_permutation(forward)
     canonical = ReplayProof(
         initial_state=transform_replay_state(proof.initial_state, inverse),
@@ -677,6 +679,10 @@ def canonicalize_replay_proof_with_identity(
         protocol_version=protocol_version,
         wrapper_seed_domain=wrapper_seed_domain,
     )
+    if forward.mode == "identity":
+        started = time.perf_counter()
+        hashes = proof_component_hashes(proof)
+        return proof, forward, hashes, {"identity_hash": time.perf_counter() - started}
     inverse = inverse_replay_state_permutation(forward)
     canonical, _, hashes, _, timings = _transform_replay_proof_with_fused_hashes(
         proof,
@@ -705,11 +711,17 @@ def mutate_replay_proof(
     magnitude: float,
     protocol_version: str = PROTOCOL_VERSION,
     final_two_checkpoints: bool = False,
+    mutation_profile: str = "legacy-suffix",
 ) -> tuple[ReplayProof, dict[str, object]]:
     checkpoint_index, sign = _atom_parts(atom_key)
     if not math.isfinite(float(magnitude)) or float(magnitude) <= 0.0:
         raise ValueError("registered suffix mutation magnitude must be finite and positive")
-    if final_two_checkpoints:
+    if mutation_profile not in {"legacy-suffix", "coherent-all-checkpoints-v1"}:
+        raise ValueError("unknown replay mutation profile")
+    coherent = mutation_profile == "coherent-all-checkpoints-v1"
+    if coherent:
+        checkpoint_index = derive_int(mutation_profile, source_id, post_commit_seed, atom_key) % len(proof.checkpoints)
+    elif final_two_checkpoints:
         if len(proof.checkpoints) < 2:
             raise ValueError("suffix mutation needs at least two checkpoints")
         checkpoint_index = len(proof.checkpoints) - 2 + (checkpoint_index - 2)
@@ -721,6 +733,7 @@ def mutate_replay_proof(
     target = dict(checkpoints[checkpoint_index])
     floating_keys = sorted(
         key for key, value in target.items() if value.is_floating_point() and value.numel()
+        and (not coherent or key in proof.optimizer_checkpoints[checkpoint_index])
     )
     if not floating_keys:
         raise ValueError("registered suffix mutation found no floating state")
@@ -804,7 +817,7 @@ def mutate_replay_proof(
         data_order_sha256=proof.data_order_sha256,
         criterion_key=proof.criterion_key,
     )
-    return mutated, {
+    receipt = {
         "atom_key": atom_key,
         "checkpoint_index_zero_based": checkpoint_index,
         "tensor_key": tensor_key,
@@ -817,6 +830,12 @@ def mutate_replay_proof(
             f"{protocol_version}|suffix-checkpoint-tamper|{source_id}|{post_commit_seed}|{atom_key}"
         ),
     }
+    if coherent:
+        from sevc.verification.public_replay_shortcuts import preserve_sgd_update_identity
+        mutated = preserve_sgd_update_identity(mutated, receipt)
+        receipt["mutation_profile"] = mutation_profile
+        receipt["prf_sha256"] = sha256_text(canonical_json([receipt["prf_sha256"], mutation_profile, checkpoint_index]))
+    return mutated, receipt
 
 
 def slice_replay_proof(proof: ReplayProof, transitions: int) -> ReplayProof:
@@ -880,9 +899,29 @@ class CompiledReplayTask:
     certificate: dict[str, object]
 
 
+@dataclass(frozen=True)
+class CompactProofHeader:
+    """Trusted metadata captured from a committed proof; never a replay input."""
+    source_sha256: str
+    checkpoints: tuple
+    batches: tuple
+    payload_metrics: tuple[int, int]
+
+    @classmethod
+    def capture(cls, proof, source_sha256):
+        return cls(source_sha256, (None,) * len(proof.checkpoints),
+                   (None,) * len(proof.batches), public_payload_metrics(proof))
+
+
 def public_payload_metrics(proof: ReplayProof) -> tuple[int, int]:
-    _, metrics, _ = _profile_public_replay_proof(proof)
-    return metrics
+    """Inventory tensor metadata without rehashing immutable payload bytes."""
+    if isinstance(proof, CompactProofHeader):
+        return proof.payload_metrics
+    states = (proof.initial_state, *proof.checkpoints,
+              proof.optimizer_initial_state or {}, *proof.optimizer_checkpoints)
+    tensors = [value for state in states for value in state.values()]
+    tensors.extend(value for batch in proof.batches for value in batch)
+    return len(tensors), sum(value.numel() * value.element_size() for value in tensors)
 
 
 @dataclass
@@ -1166,6 +1205,23 @@ def serialize_public_replay_envelope(envelope: Mapping[str, Any]) -> bytes:
     return canonical_json(dict(envelope)).encode("utf-8")
 
 
+PADDING_FIELD = "padding"
+
+
+def equalize_public_envelopes(envelopes: Sequence[Mapping[str, Any]]) -> list[dict[str, Any]]:
+    """Pad one job's envelopes with whitespace to a common serialized length.
+
+    The padding is role-independent, so envelope length carries no information
+    about which tasks are probes.
+    """
+    if any(PADDING_FIELD in envelope for envelope in envelopes):
+        raise ValueError("envelope already carries a padding field")
+    bases = [{**envelope, PADDING_FIELD: ""} for envelope in envelopes]
+    lengths = [len(serialize_public_replay_envelope(base)) for base in bases]
+    target = max(lengths, default=0)
+    return [{**base, PADDING_FIELD: " " * (target - length)} for base, length in zip(bases, lengths)]
+
+
 @dataclass(frozen=True)
 class CanonicalReplayTaskBundle:
     public_envelope: dict[str, object]
@@ -1205,9 +1261,20 @@ def compile_canonical_replay_task(
     validated_source_verdict: bool | None = None,
     final_two_checkpoints: bool = False,
     transform_device: str | None = None,
+    public_source_commitment: str | None = None,
+    mutation_profile: str = "legacy-suffix",
+    wrapper_profile: str = "permuted",
+    gradient_scale: float = 0.99,
+    challenge_device: str = "cpu",
 ) -> CanonicalReplayTaskBundle:
     """Compile one T2 task through the shared canonical mutation/wrapper seam."""
 
+    if isinstance(proof, CompactProofHeader) and (
+        atom_key is not None or wrapper_profile != "identity" or delivery_profile != "compact"
+        or source_component_hashes is None
+        or proof.source_sha256 != source_component_hashes.get("proof_sha256")
+        or proof.source_sha256 != source_commitment):
+        raise ValueError("compact header requires identical authenticated unmodified source")
     if role not in {"production", "control", "challenge"}:
         raise ValueError(f"unknown sealed RCMP role: {role}")
     if (role == "challenge") != (atom_key is not None):
@@ -1222,15 +1289,22 @@ def compile_canonical_replay_task(
     mutation_seconds = 0.0
     if atom_key is not None:
         mutation_started = time.perf_counter()
-        candidate, mutation = mutate_replay_proof(
-            proof,
-            source_id=source_id,
-            post_commit_seed=post_commit_seed,
-            atom_key=atom_key,
-            magnitude=tamper_delta,
-            protocol_version=protocol_version,
-            final_two_checkpoints=final_two_checkpoints,
-        )
+        if mutation_profile == "gradient-continuation-v3":
+            from sevc.verification.public_replay_shortcuts import gradient_continuation_challenge
+            candidate, mutation = gradient_continuation_challenge(
+                proof, model, checkpoint_index=ATOM_KEYS.index(atom_key), scale=gradient_scale,
+                device=challenge_device)
+        else:
+            candidate, mutation = mutate_replay_proof(
+                proof,
+                source_id=source_id,
+                post_commit_seed=post_commit_seed,
+                atom_key=atom_key,
+                magnitude=tamper_delta,
+                protocol_version=protocol_version,
+                final_two_checkpoints=final_two_checkpoints,
+                mutation_profile=mutation_profile,
+            )
         mutation_seconds = time.perf_counter() - mutation_started
     if identity_profile not in {"reference", "fused", "deferred", "separated-reuse"}:
         raise ValueError(f"unknown proof identity profile: {identity_profile}")
@@ -1242,7 +1316,21 @@ def compile_canonical_replay_task(
     fused_candidate_hashes = None
     fused_wrapped_hashes = None
     fused_wrapped_metrics = None
-    if identity_profile in {"fused", "deferred"}:
+    if wrapper_profile not in {"permuted", "identity"}:
+        raise ValueError("unknown canonical wrapper profile")
+    if wrapper_profile == "identity":
+        plan_started = time.perf_counter()
+        plan = build_replay_state_permutation(model, model_key, seed=permutation_seed, mode="identity")
+        wrapped = candidate
+        wrap_seconds = {"permutation_plan": time.perf_counter() - plan_started,
+                        "model_transform": 0., "optimizer_transform": 0., "batch_copy_or_share": 0.}
+        fused_wrapped_metrics = public_payload_metrics(candidate)
+        if candidate is proof and source_component_hashes is not None:
+            fused_wrapped_hashes = dict(source_component_hashes)
+        else:
+            fused_wrapped_hashes = proof_component_hashes(candidate)
+        fused_candidate_hashes = fused_wrapped_hashes
+    elif identity_profile in {"fused", "deferred"}:
         plan_started = time.perf_counter()
         plan = build_replay_state_permutation(model, model_key, seed=permutation_seed)
         plan_seconds = time.perf_counter() - plan_started
@@ -1273,11 +1361,12 @@ def compile_canonical_replay_task(
     descriptor_seconds = time.perf_counter() - descriptor_started
     wrapper_seconds = time.perf_counter() - wrapper_started
     task_identity_started = time.perf_counter()
+    public_binding = source_commitment if public_source_commitment is None else public_source_commitment
     task_id = sha256_text(
         canonical_json(
             {
                 "protocol_version": protocol_version,
-                "source_commitment": source_commitment,
+                "source_commitment": public_binding,
                 "permutation_id": plan.permutation_id,
             }
         )
@@ -1326,7 +1415,7 @@ def compile_canonical_replay_task(
         descriptor,
         protocol_version=protocol_version,
         task_id=task_id,
-        source_commitment=source_commitment,
+        source_commitment=public_binding,
         report_nonce_sha256=report_nonce,
         model_key=model_key,
         delivery_profile=delivery_profile,
@@ -1748,6 +1837,8 @@ __all__ = [
     "PublicReplayTaskView",
     "public_state_feature_payload",
     "serialize_public_replay_envelope",
+    "equalize_public_envelopes",
+    "PADDING_FIELD",
     "shared_schema_validator",
     "shared_schema_validator_cache_info",
     "_clear_shared_schema_validator_cache_for_tests",
@@ -1772,6 +1863,9 @@ def verify_wrapped_replay_proof(proof, model, descriptor, model_factory, *,
         raise ValueError("canonical replay proof lacks optimizer start state")
     forward = verify_wrapper_descriptor(model, descriptor,
         protocol_version=protocol_version, wrapper_seed_domain=wrapper_seed_domain)
+    if forward.mode == "identity":
+        return verify_replay_proof(proof, model_factory, device=device, tolerance=tolerance,
+                                  comparison_device=comparison_device)
     inverse = inverse_replay_state_permutation(forward)
     def restore(state, optimizer):
         transform = transform_optimizer_momentum if optimizer else transform_replay_state

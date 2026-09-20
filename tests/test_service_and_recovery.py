@@ -71,3 +71,5 @@ def test_full_window_utilization_includes_idle_and_clips_boundaries():
     assert integrate_utilization(samples,.5,1.5)["average_percent"] == 50.
     with pytest.raises(ValueError):
         integrate_utilization(samples,-1.,1.)
+
+

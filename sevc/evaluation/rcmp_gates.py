@@ -15,35 +15,7 @@ ACTIONS = ("H", "L", "C+", "C-", "D")
 DEVIATIONS = ("L", "C+", "C-", "D")
 
 
-def clopper_pearson_bound(
-    successes: int,
-    trials: int,
-    *,
-    side: str,
-    alpha: float,
-) -> float:
-    """Return an exact one-sided binomial confidence bound.
-
-    Boundary cases deliberately retain non-degenerate uncertainty: zero
-    successes has a positive upper bound and all successes has a lower bound
-    below one.
-    """
-
-    from scipy.stats import beta
-
-    successes = int(successes)
-    trials = int(trials)
-    if trials <= 0 or not 0 <= successes <= trials or not 0 < alpha < 1:
-        raise ValueError("invalid Clopper-Pearson inputs")
-    if side == "upper":
-        return 1.0 if successes == trials else float(
-            beta.ppf(1.0 - alpha, successes + 1, trials - successes)
-        )
-    if side == "lower":
-        return 0.0 if successes == 0 else float(
-            beta.ppf(alpha, successes, trials - successes + 1)
-        )
-    raise ValueError("Clopper-Pearson side must be lower or upper")
+from sevc.core.statistical_bounds import clopper_pearson_bound
 
 
 def _finite(values: Sequence[float]) -> np.ndarray:

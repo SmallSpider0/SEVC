@@ -42,6 +42,8 @@ class JobReferences:
 def acquire_probe_sources(source_ids, *, secret_hex, references: JobReferences):
     """Commit private priority, then stop at eight replay-valid sources or forty.
 
+    If fewer than eight pass, the failed owner replays reject the job.
+
     Replay failures are ordinary attempts. Malformed receipts are technical
     failures. Unselected identities, including failed attempts, remain production.
     """
@@ -63,9 +65,16 @@ def acquire_probe_sources(source_ids, *, secret_hex, references: JobReferences):
         if len(selected) == 8:
             break
     issued = len(selected) == 8
+    # Fewer than eight passing sources means the owner's own calibrated replays
+    # failed on committed segments: that is owner-verified execution evidence,
+    # so the job is rejected with a misconduct finding rather than deferred.
+    rejecting = [a["source_sha256"] for a in attempts if not a["passed"]]
     outcome = {"job_id": references.job_id, "status": "REFERENCES_READY" if issued else
-               "INSUFFICIENT_VALID_REFERENCES_SAFE_DEFER", "issued": issued,
+               "OWNER_REPLAY_REJECT", "issued": issued,
                "selected_ids": selected, "production_ids": [s for s in ids if s not in selected],
-               "attempts": attempts, "role_commitment": private_commit}
+               "attempts": attempts, "role_commitment": private_commit,
+               "trainer_terminal": None if issued else "reject",
+               "misconduct_finding": False if issued else True,
+               "rejecting_attempts": [] if issued else rejecting}
     references.emit({"event": "reference-preparation-outcome", **outcome})
     return outcome

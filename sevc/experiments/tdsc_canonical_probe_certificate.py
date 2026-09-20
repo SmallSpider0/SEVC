@@ -269,3 +269,5 @@ def _timed_canonical_replay(
     canonical_seconds = time.perf_counter() - canonical_started
     result, replay_seconds = _timed_replay(canonical, transitions=transitions)
     return canonical, verified_plan, result, canonical_seconds, replay_seconds
+
+

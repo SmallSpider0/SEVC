@@ -124,3 +124,5 @@ class GPUSampler:
                       "effective_memory_limit_bytes", "cgroup_memory_usage_bytes", "cgroup_memory_failcnt")
             writer = csv.DictWriter(handle, fieldnames=fields)
             writer.writeheader(); writer.writerows(self.rows)
+
+

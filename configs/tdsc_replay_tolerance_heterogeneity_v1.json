@@ -1,0 +1,93 @@
+{
+  "anchors": [
+    "init",
+    "mid"
+  ],
+  "block_seeds": {
+    "cifar10": [
+      1095507405,
+      87638269,
+      1141419588,
+      98214889,
+      1040904236,
+      634995162,
+      1944504092,
+      2002292009
+    ],
+    "cifar100": [
+      1489520303,
+      1173217719,
+      572003983,
+      905583497,
+      1158855893,
+      1454207327,
+      1494523109,
+      975922183
+    ],
+    "mnist": [
+      431226862,
+      1312494730,
+      2014920805,
+      367439586,
+      288873963,
+      1264672385,
+      1231951969,
+      175601160
+    ]
+  },
+  "change_id": "experiment-tdsc-replay-tolerance-heterogeneity-v1",
+  "dataset_specs": {
+    "cifar10": {
+      "class_count": 10,
+      "image_size": 32,
+      "model": "resnet18"
+    },
+    "cifar100": {
+      "class_count": 100,
+      "image_size": 32,
+      "model": "resnet18-native-32"
+    },
+    "mnist": {
+      "class_count": 10,
+      "image_size": 28,
+      "model": "small-mlp"
+    }
+  },
+  "datasets": [
+    "mnist",
+    "cifar10",
+    "cifar100"
+  ],
+  "default_profile": "standalone-tolerance",
+  "experiment_key": "tdsc-replay-tolerance-heterogeneity-v1",
+  "formal_execution_authorized": false,
+  "maximum_runner_wall_seconds": 14400,
+  "numeric_configs": [
+    "C0-reference",
+    "C1-nondeterministic-autotune",
+    "C2-tf32",
+    "C3-pytorch-defaults",
+    "C4-cpu"
+  ],
+  "partitions": {
+    "cifar10": [
+      44000,
+      50000
+    ],
+    "cifar100": [
+      44000,
+      50000
+    ],
+    "mnist": [
+      50000,
+      56000
+    ]
+  },
+  "profiles": {
+    "standalone-tolerance": {
+      "data_root": "<torchvision-dataset-root>",
+      "device": "cuda:0",
+      "formal": false
+    }
+  }
+}

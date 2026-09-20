@@ -86,3 +86,12 @@ def evaluate_score(spec, score, epsilon):
             "honest": honest, "best_deviation": best,
             "honest_minus_best_deviation": honest["utility"] - best["utility"],
             "conditional_utilities": conditional.tolist(), "K": float(np.abs(score).max())}
+
+
+def native_cell(spec, method, epsilon, scores):
+    """Shared native M8 assembly with reusable optimization certificate."""
+    if method not in scores:
+        scores[method] = ({'status':'PUBLISHED_ROUNDED','score':spec['published_score']}
+            if 'published' in method else solve_score(spec, simple_agreement=method.startswith('simple-agreement')))
+    solution=scores[method]
+    return solution, (evaluate_score(spec,solution['score'],epsilon) if solution['score'] is not None else None)

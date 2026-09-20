@@ -16,3 +16,4 @@ def offline_cpu_tests(monkeypatch):
     monkeypatch.setattr(urllib.request, "urlopen", denied)
     monkeypatch.setattr(torch.hub, "download_url_to_file", denied)
     torch.set_num_threads(1)
+

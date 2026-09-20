@@ -534,3 +534,5 @@ def _bootstrap_effects(
                     }
                 )
     return output
+
+

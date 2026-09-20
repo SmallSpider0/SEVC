@@ -176,9 +176,15 @@ def produce_worker_update(
     milestone_callback=None,
     milestone_steps: tuple[int, ...] | None = None,
     initial_rng_state: dict | None = None,
+    gradient_scale_by_step: dict[int, float] | None = None,
 ) -> WorkerUpdate:
     if local_epochs <= 0 or learning_rate <= 0 or momentum < 0:
         raise ValueError("invalid local-training hyperparameters")
+    if gradient_scale_by_step is not None and any(
+        type(k) is not int or k < 0 or not math.isfinite(v) or v <= 0
+        for k, v in gradient_scale_by_step.items()
+    ):
+        raise ValueError("invalid registered gradient scaling")
     prepared = prepare_worker_model(
         behavior,
         global_model,
@@ -213,6 +219,8 @@ def produce_worker_update(
     if logical_microbatch_size is not None and logical_microbatch_size <= 0:
         raise ValueError("logical_microbatch_size must be positive when provided")
     total_steps = len(materialized_batches) * local_epochs
+    if gradient_scale_by_step and max(gradient_scale_by_step) >= total_steps:
+        raise ValueError("gradient scaling step outside training workload")
     capture_start = (
         0
         if replay_tail_batches is None
@@ -270,6 +278,11 @@ def produce_worker_update(
                     (chunk_loss_sum / logical_count).backward()
                     chunk_loss_sums.append(chunk_loss_sum.detach())
                 loss = torch.stack(chunk_loss_sums).sum() / logical_count
+            if gradient_scale_by_step and step in gradient_scale_by_step:
+                with torch.no_grad():
+                    for parameter in model.parameters():
+                        if parameter.grad is not None:
+                            parameter.grad.mul_(gradient_scale_by_step[step])
             optimizer.step()
             # Keep the scalar on the execution device until the local-training
             # loop is complete.  Copying every scalar to the host here forces

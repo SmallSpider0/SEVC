@@ -38,6 +38,48 @@ def require(condition,message):
         raise ValueError(message)
 
 
+def audit_protocol_states(evidence):
+    """Check fixture receipts against explicit expectations, not runner verdicts."""
+    from sevc.evaluation.recovery_graph_audit import audit_trace
+    require(evidence['no_dataset_sample_count_from_fixtures'] is True,
+            'finite fixtures counted as dataset repeats')
+    masks=evidence['probe_masks']
+    require([r['mask'] for r in masks]==list(range(256)), 'probe-mask coverage differs')
+    for row in masks:
+        complete=row['mask']==255; s=row['settlement']
+        require(s['status']==('PASS' if complete else 'TECHNICAL_FAILURE')
+                and s['accepted_report']==complete, 'incomplete owner reference admitted')
+        require(s['service_fee']==(2.5 if complete else 0.)
+                and s['refundable_bond']==.5 and s['slashed_bond']==0.,
+                'owner-reference failure charged to verifier')
+    responses=evidence['response_sets']
+    expected=set(itertools.combinations([f'v{i}' for i in range(9)],2))
+    require(len(responses)==36 and {tuple(r['missing']) for r in responses}==expected,
+            'allowed response-set coverage differs')
+    for row in responses:
+        trace=row['trace']; recalculated=audit_trace(trace)
+        require(set(trace['missing_identities'])==set(row['missing']), 'response identity differs')
+        require(trace['certificate']['hall_witness']['all_response_sets_covered']
+                and recalculated['completed_jobs']==2, 'capacity or executed completion failed')
+        require(row['audit']==recalculated, 'fixture recovery audit differs')
+    states=evidence['calibration_states']
+    require([r['observations'] for r in states]==[0,1,64]
+            and [r['admitted'] for r in states]==[False,False,True], 'cold-start state drift')
+    for row in states[1:]:
+        n=row['observations']; s=row['summary']
+        # All-success binomial lower bound has the closed form alpha**(1/n).
+        lower=(.05/9)**(1/n)
+        require(s['completed_opportunities']==s['audited_admitted']==s['correct_audited']==n,
+                'calibration denominator drift')
+        require(abs(s['correctness_lower']-lower)<1e-12
+                and abs(s['availability_lower']-lower)<1e-12, 'calibration bound differs')
+        require(s['reserved_expenditure']==s['actual_expenditure']==2.5*n,
+                'calibration fee accounting differs')
+    return {'status':'AUDIT_PASS','probe_masks':256,'response_sets':36,
+            'executed_fixture_jobs':72,'calibration_states':3,
+            'learned_population_reliability':False}
+
+
 def resource_breakdown(root,rows):
     """Integrate disjoint measured component windows with sampler boundary rows."""
     import bisect
@@ -64,12 +106,17 @@ def resource_breakdown(root,rows):
     return dict(groups)
 
 
-def audit_and_summarize(root,config,profile):
+def audit_and_summarize(root,config,profile, *, descriptive_projection=None, disclosure_schedules=None):
+    claim_linked = config['scoped_candidate'].get('protocol_variant') == 'claim-linked-tiny-v1'
     root=Path(root); specification=json.loads((root/'expanded-units.json').read_text())
     registered={r['unit_id']:r for r in specification}
     files=list((root/'units').glob('*.json'))
     require({p.stem for p in files}==set(registered),'unit coverage mismatch')
     rows={p.stem:json.loads(p.read_text()) for p in files}
+    if claim_linked:
+        from sevc.evaluation.scoped_campaign_contract import expand_units
+        expected = expand_units(config['scoped_candidate']) if profile['full_matrix'] else config['technical_units'][profile['namespace']]
+        require(specification == expected, 'claim-linked frozen matrix drift')
     from sevc.verification.reference_acquisition import commitment
     private=json.loads(Path(config['private_streams_path']).read_text())
     locked_streams=json.loads((root/'stream-commitments.json').read_text())
@@ -97,6 +144,7 @@ def audit_and_summarize(root,config,profile):
             reveals[aid]=event['report']
     references=defaultdict(dict); audits={}; salt_commitments={}; deliveries={}; role_populations={}; priorities={}
     reference_new=reference_hits=0; views={}; prepared_references={}; shared_preparations={}
+    disclosures=[]
     for event in lines(root/'assignment-audit.jsonl'):
         kind=event.get('event')
         if kind=='role-seed-committed':
@@ -120,6 +168,8 @@ def audit_and_summarize(root,config,profile):
             job,sid=event['job_id'],event['source_sha256']; receipt=event['receipt']
             require(receipt['proof_sha256']==sid and receipt['state_complete'] is True,'unbound reference receipt')
             require(type(receipt['passed']) is bool,'unmeasured reference answer')
+            if claim_linked:
+                require(receipt['passed']==source_truth[sid], 'constructed source validity disagrees with actual replay')
             if kind=='reference-cache-hit':
                 require(references[job].get(sid)==receipt,'cross-job or unearned reference cache hit')
                 reference_hits+=1
@@ -154,6 +204,26 @@ def audit_and_summarize(root,config,profile):
             require(salt_commitments.get(aid)==identity([aid,event['secret']]),'audit secret commitment mismatch')
             require(commitments.get(aid)==event['report_commitment'],'audit not bound to report')
             audits[aid]=event
+        elif kind=='reference-answers-published' and claim_linked:
+            if disclosure_schedules is None:
+                require(set(audits)==set(reveals), 'probe answers published before all services closed')
+            else:
+                expected_epoch = disclosure_schedules.get(event['epoch_id'])
+                require(expected_epoch is not None and set(event['assignment_states'])==set(expected_epoch),
+                        'disclosure schedule differs from frozen source family')
+                activated={a for a,s in event['assignment_states'].items() if s!='NOT_ACTIVATED'}
+                require(activated<=set(audits) and activated<=set(reveals),
+                        'related source family disclosed before its services closed')
+            require(not any(s in ('PLANNED','RUNNING') for s in event['assignment_states'].values()),
+                    'probe disclosure has unfinished related assignments')
+            disclosures.append(event)
+    if claim_linked:
+        if disclosure_schedules is None:
+            require(len(disclosures)==1, 'exactly one delayed disclosure for the frozen evidence wave required')
+        else:
+            require(len(disclosures)==len(disclosure_schedules) and
+                    {d['epoch_id'] for d in disclosures}==set(disclosure_schedules),
+                    'missing or duplicate scoped disclosure')
     timed=defaultdict(lambda:defaultdict(list)); cpu=defaultdict(lambda:defaultdict(float))
     events_seen=set()
     for phase in lines(root/'phase-timing.jsonl'):
@@ -208,10 +278,11 @@ def audit_and_summarize(root,config,profile):
         if not row['issued']:
             require(row['assignments']==[],'unissued service has invented observations')
             continue
-        task_map={t['task_id']:t for t in row['tasks']}
         per_row=[]
         for assignment in row['assignments']:
             assignment_count+=1; aid=assignment['assignment_id']; report=assignment['report']
+            job=uid+'-job1' if report['job_id']=='j1' else uid+'-job'
+            task_map={t['task_id']:t for t in deliveries[job]['tasks']}
             joint=assignment['behavior'].startswith('joint-')
             require(views[aid]['view']==('trainer-plus-verifier' if joint else 'verifier-delivered-only'),'information view drift')
             require(joint or views[aid]['trainer_cache_size']==0,'ordinary verifier received trainer-private cache')
@@ -220,7 +291,6 @@ def audit_and_summarize(root,config,profile):
             verdict=dict(zip(report['ordered_segment_ids'],report['verdicts']))
             require(set(verdict)==set(task_map),'assignment delivery population mismatch')
             require(set(d['task_id'] for d in assignment['execution'])==set(verdict),'execution identity mismatch')
-            job=uid+'-job1' if report['job_id']=='j1' else uid+'-job'
             probes={k:t['probe_answer'] for k,t in task_map.items() if t['role']!='production'}
             mismatches=sum(verdict[k]!=v for k,v in probes.items())
             sampled=audits[aid]['selected']
@@ -231,10 +301,17 @@ def audit_and_summarize(root,config,profile):
             rank=sorted(range(len(production_ids)),key=lambda i:hashlib.sha256((prefix+str(i)).encode()).digest())
             require(sampled==[production_ids[i] for i in sorted(rank[:count])],'production audit sample/budget drift')
             wrong_audit=any(verdict[k]!=references[job][task_map[k]['source_sha256']]['passed'] for k in sampled)
-            passed=mismatches<2 and not wrong_audit
+            terms=config['scoped_candidate']['service_terms'] if claim_linked else {'failure_threshold':2,'fee':1.25,'bond':.5}
+            if claim_linked:
+                require(len(probes)==8 and sum(probes.values())==4, 'incomplete control/challenge quota')
+                injected=[d['task_id'] for d in assignment['execution'] if d.get('precommit_injected_flip')]
+                expected_injection = bool(row.get('conditioned_production_flip') and report['job_id']=='j0' and report['verifier_id']=='v0')
+                require(len(injected)==int(expected_injection) and set(injected)<=set(production_ids),
+                        'unregistered or mistargeted conditioned report fault')
+            passed=mismatches<terms['failure_threshold'] and not wrong_audit
             settlement=assignment['settlement']
             require(settlement['status']==('PASS' if passed else 'FAIL_CONFIRMED'),'independent service decision mismatch')
-            require(settlement['service_fee']==(1.25 if passed else 0.) and settlement['slashed_bond']==(0. if passed else .5),'payment conservation failure')
+            require(settlement['service_fee']==(terms['fee'] if passed else 0.) and settlement['slashed_bond']==(0. if passed else terms['bond']),'payment conservation failure')
             wrong_production=any(verdict[k]!=source_truth[t['source_sha256']] for k,t in task_map.items() if t['role']=='production')
             per_row.append({'paid':passed,'wrong_production_admitted':passed and wrong_production,
                             'honest_false_penalty':assignment['behavior']=='honest' and not passed,
@@ -266,7 +343,7 @@ def audit_and_summarize(root,config,profile):
             reference_checks.append({'dataset':row['dataset'],'package':row['package'],
                 'block':row['block'],'task_id':observed['task_id'],
                 'agrees':observed['reference']==observed['actual']['passed']})
-        if row['package'] in {'M5','M6C'}:
+        if row['package'] in {'M5','M6C'} or claim_linked:
             require(not row.get('preparation_donor_job_id'),'complete cost uses shared preparation')
             verifier=interval_union(timed[uid]['verifier']); wait=interval_union(timed[uid]['wait'])
             owner=row['online_suffix_seconds']-verifier-wait
@@ -283,6 +360,28 @@ def audit_and_summarize(root,config,profile):
                 'shared_trainer_prefix_cpu_seconds':row['shared_trainer_prefix_cpu_seconds'],
                 'owner_basis':'controlled serial suffix minus union of actual verifier interfaces and waits; residual owner orchestration retained',
                 'resource_and_payment_transfers_separate':True})
+    if claim_linked:
+        state_audit=audit_protocol_states(json.loads((root/'protocol-state-evidence.json').read_text()))
+        from sevc.evaluation.scoped_statistics import claim_linked_descriptive
+        summaries=(descriptive_projection or claim_linked_descriptive)(rows,observations,full_cost,trainer_outcomes,
+                                          config['scoped_candidate']['science'])
+        output={'scope':'improved-method-three-dataset-small-sample',
+                'formal_server_measurement':profile['full_matrix'],
+                'units':list(rows.values()),'service_observations':observations,
+                'trainer_outcomes':trainer_outcomes,'full_cost':full_cost,
+                'reference_checks':reference_checks,'recovery_checks':recovery_checks,
+                'protocol_state_audit':state_audit,
+                'descriptive_projections':summaries,
+                'publication_ready':False}
+        write_json(root/'claim-linked-results.json',output)
+        audit={'status':'AUDIT_PASS','units':len(rows),'assignments':assignment_count,
+               'source_records':source_count,'reference_replays':reference_new,'reference_cache_hits':reference_hits,
+               'delayed_disclosures':len(disclosures),'resource_events':len(events_seen),
+               'package_counts':dict(Counter(r['package'] for r in rows.values())),
+               'protocol_state_audit':state_audit,
+               'full_matrix':profile['full_matrix'],'independent_calculation':True,'publication_ready':False}
+        write_json(root/'independent-audit.json',audit)
+        return audit
     primary=[]; methods=config['scoped_candidate']['science']['methods']; alpha=.05/9
     for dataset in config['scoped_candidate']['science']['dataset_order']:
         blocks=sorted(b for d,b in risks if d==dataset)

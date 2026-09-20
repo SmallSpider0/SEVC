@@ -5,6 +5,98 @@ import numpy as np
 from scipy.stats import beta
 
 
+def uniform_admission_probability(k, total=40, rejecting=4):
+    """Exact fixed-quota admission for uniform replay and accept-on-omission."""
+    from math import comb
+    if not 0 <= rejecting <= total or not 0 <= k <= total:
+        raise ValueError('invalid fixed-quota dimensions')
+    return comb(k, rejecting) / comb(total, rejecting) if k >= rejecting else 0.
+
+
+def claim_linked_descriptive(rows, observations, full_cost, trainer_outcomes, science):
+    """Paired small-sample projections for the improved protocol, with raw points."""
+    from math import comb
+    methods=science['methods']
+    prices=science.get('prices', {'fee_sensitivity':[1.25,2.5], 'bond':.5,
+                                 'cost_per_second':[0,.01,.1,1]})
+    services=defaultdict(list); cost_by_id={r['unit_id']:r for r in full_cost}
+    utilities=[]; service_points=[]; recovery_points=[]; owner_ratios=[]
+    honest={}
+    for uid,row in rows.items():
+        if row['package']=='M1' and row['issued'] and row['behavior']=='honest':
+            honest[row['dataset'],row['block'],row['method']]=observations[uid][0]['cost_seconds']
+    for uid,row in rows.items():
+        if row['package']=='M1':
+            actual=observations.get(uid,[])
+            key=row['dataset'],row['method'],row['behavior']
+            services[key].append(row)
+            point={'unit_id':uid,'dataset':row['dataset'],'method':row['method'],
+                   'behavior':row['behavior'],'block':row['block'],'issued':row['issued'],
+                   'paid':sum(a['paid'] for a in actual),
+                   'wrong_production_admitted':sum(a['wrong_production_admitted'] for a in actual),
+                   'honest_false_penalty':sum(a['honest_false_penalty'] for a in actual),
+                   'replayed_tasks':sum(d['replayed'] for a in row['assignments'] for d in a['execution'])}
+            service_points.append(point)
+            if not actual:
+                continue
+            cost=actual[0]['cost_seconds']; hcost=honest.get((row['dataset'],row['block'],row['method']))
+            k={'honest':40,'partial-50':20,'partial-90':36}[row['behavior']]
+            chance=uniform_admission_probability(k)
+            settlement=row['assignments'][0]['settlement']
+            for fee,unit_cost in itertools.product(prices['fee_sensitivity'],prices['cost_per_second']):
+                bond=prices['bond']
+                utilities.append({'unit_id':uid,'dataset':row['dataset'],'block':row['block'],
+                    'method':row['method'],'behavior':row['behavior'],'fee':fee,'bond':bond,
+                    'cost_per_second':unit_cost,'measured_cost_seconds':cost,
+                    'observed_utility':(fee if actual[0]['paid'] else 0.)
+                        -(bond if settlement['slashed_bond'] else 0.)-unit_cost*cost,
+                    'combinatorial_pass_probability':chance,
+                    'combinatorial_wrong_report_admission_probability':chance*(40-k)/36,
+                    'expected_utility_cost_plugin':fee*chance-bond*(1-chance)-unit_cost*cost,
+                    'honest_IR_cost_plugin':None if hcost is None else fee-unit_cost*hcost,
+                    'honest_minus_deviation_cost_plugin':None if hcost is None else
+                        (fee+bond)*(1-chance)-unit_cost*(hcost-cost),
+                    'statistical_scope':'exact uniform-selection probability; measured cost point, not a population IC estimate'})
+        if row['package']=='M4L' and row['issued']:
+            trace=row['recovery']; outcome=[r for r in trainer_outcomes if r['unit_id']==uid]
+            recovery_points.append({'unit_id':uid,'dataset':row['dataset'],'block':row['block'],
+                'scenario':row['scenario'],'policy':row['policy'],'jobs':2,
+                'completed_jobs':sum(not r['safe_defer'] for r in outcome),
+                'safe_defer_jobs':sum(r['safe_defer'] for r in outcome),
+                'wrong_reward':sum(r['wrong_reward'] for r in outcome),
+                'wrong_misconduct':sum(r['wrong_misconduct'] for r in outcome),
+                'callbacks':len(trace['receipts']),
+                'actual_service_fees':sum(a['settlement']['service_fee'] for a in row['assignments']),
+                'reserved_expenditure':trace['reserved_expenditure'],
+                'budget_cap_per_job':trace['budget_cap_per_job'],
+                'terminal_routes':{j:d['route'] for j,d in trace['decisions'].items()}})
+    direct={(r['dataset'],r['seed'],r['block'],r['invalid']):cost_by_id[uid] for uid,r in rows.items()
+            if r['package']=='M5' and r['issued'] and uid in cost_by_id}
+    for uid,row in rows.items():
+        baseline=direct.get((row['dataset'],row['seed'],row['block'],row['invalid']))
+        if uid not in cost_by_id or baseline is None or row['method']==methods['O']:
+            continue
+        if row['package']=='M1' and row['behavior']!='honest':
+            continue
+        count=2 if row['package']=='M4L' else 1
+        owner=cost_by_id[uid]['owner_busy_wall_seconds']
+        denominator=count*baseline['owner_busy_wall_seconds']
+        if denominator<=0:
+            raise ValueError('owner-direct comparison has no measured denominator')
+        owner_ratios.append({'unit_id':uid,'dataset':row['dataset'],'block':row['block'],
+            'method':row['method'],'scenario':row.get('scenario','single-verifier'),
+            'jobs_in_numerator':count,'owner_seconds':owner,
+            'matched_direct_seconds':denominator,'owner_to_direct_ratio':owner/denominator,
+            'direct_unit_id':baseline['unit_id']})
+    return {'service_points':service_points,'recovery_points':recovery_points,
+            'owner_cost_points':owner_ratios,'all_price_grid_points':utilities,
+            'service_opportunity_counts':[{'dataset':d,'method':m,'behavior':b,
+                'prescribed_opportunities':len(rs),'issued':sum(r['issued'] for r in rs),
+                'independent_blocks':len({r['block'] for r in rs})} for (d,m,b),rs in sorted(services.items())],
+            'independent_unit':'paired source block within dataset',
+            'replicate_unit_warning':'Two jobs and repeated verifier callbacks are paired observations, not independent blocks.'}
+
+
 def exact_interval(k,n,alpha):
     if not n:
         return [None,None]

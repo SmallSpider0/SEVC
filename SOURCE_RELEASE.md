@@ -17,6 +17,6 @@ It cannot be presented as the original study's evidence. Software tests are not
 scientific measurements. Earlier experiment code is retained as scientific
 routines without private deployment orchestration; see docs/experiments.md.
 
-This repository publishes source only; no data or result release accompanies it.
-License selection is deferred by the repository owner. Git history begins with
-this source distribution and does not import the development project's history.
+No remote repository or release is created by this source preparation. License
+selection remains an owner action before public distribution. A fresh local Git
+repository may be initialized without importing previous history or identity.

@@ -8,6 +8,8 @@ CHANGE = "experiment-tdsc-scoped-five-rq-confirmation-v1"
 
 
 def expand_units(candidate):
+    if candidate.get("protocol_variant") == "claim-linked-tiny-v1":
+        return expand_claim_linked_units(candidate)
     science = candidate["science"]
     methods = science["methods"]
     packages = {p["id"]: p for p in candidate["packages"]}
@@ -88,6 +90,42 @@ def expand_units(candidate):
             raise ValueError(f"{key} expanded count differs: {len(group)}")
         if "reused_count" in spec and sum(bool(r.get("reuse_of")) for r in group) != spec["reused_count"]:
             raise ValueError(f"{key} reuse count differs")
+    return rows
+
+
+def expand_claim_linked_units(candidate):
+    """The reviewed improved-method slice, consumed by the same ScopedStudy."""
+    science = candidate["science"]
+    if set(science["dataset_order"]) != {"mnist", "cifar10", "cifar100"}:
+        raise ValueError("claim-linked evidence requires exactly three datasets")
+    methods = science["methods"]
+    rows = []
+    def add(package, dataset, block, method, behavior="honest", invalid=0, **extra):
+        row = {"package": package, "dataset": dataset, "block": block,
+               "seed": science["datasets"][dataset]["seed_start"] + block,
+               "method": method, "behavior": behavior, "invalid": invalid,
+               "steps": 4, "batch_size": 2, **extra}
+        row["unit_id"] = commitment([science["namespace"], row])
+        rows.append(row)
+    for dataset in science["dataset_order"]:
+        for block in range(science["blocks_per_dataset"]):
+            for method, behavior in itertools.product((methods["R"], methods["G"]),
+                                                     ("honest", "partial-50", "partial-90")):
+                add("M1", dataset, block, method, behavior, 1, verifier_count=1,
+                    reference_check=behavior == "honest")
+            for scenario, invalid, fault, policy, flip in (
+                ("valid-honest", 0, "no-missing", "all-response-certified-ecs", False),
+                ("invalid-honest", 1, "no-missing", "all-response-certified-ecs", False),
+                ("valid-one-missing-recovery", 0, "one-missing", "all-response-certified-ecs", False),
+                ("valid-one-incorrect-report", 0, "no-missing", "all-response-certified-ecs", True),
+                ("valid-one-missing-no-recovery", 0, "one-missing", "no-recovery", False),
+            ):
+                add("M4L", dataset, block, methods["R"], invalid=invalid, scenario=scenario,
+                    fault=fault, policy=policy, graph="all-compatible", conditioned_production_flip=flip)
+            for invalid in (0, 1):
+                add("M5", dataset, block, methods["O"], invalid=invalid, verifier_count=0)
+    if len({r["unit_id"] for r in rows}) != len(rows):
+        raise ValueError("duplicate claim-linked unit identity")
     return rows
 
 

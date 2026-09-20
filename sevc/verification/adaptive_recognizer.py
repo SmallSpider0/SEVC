@@ -259,36 +259,8 @@ def fit_predict_probe_probability(
     )
 
 
-def fit_predict_probe_probability_v2(
-    *,
-    matrix: np.ndarray,
-    labels: np.ndarray,
-    history_indices: Sequence[int],
-    test_indices: Sequence[int],
-    observation_budget: int,
-    random_state: int,
-    component_models: Mapping[str, Mapping[str, Any]],
-) -> tuple[np.ndarray, AdaptiveFitReceipt]:
-    """Fit the frozen three-branch successor ensemble and average probabilities."""
-
-    if observation_budget < 0 or observation_budget > len(history_indices):
-        raise ValueError("adaptive v2 observation budget is outside the history pool")
-    selected = tuple(history_indices[:observation_budget])
-    identity = hashlib.sha256(
-        ",".join(str(index) for index in selected).encode("utf-8")
-    ).hexdigest()
-    if observation_budget == 0:
-        return (
-            np.zeros(len(test_indices), dtype=float),
-            AdaptiveFitReceipt(
-                0, 0, 0, identity, "constant-production-prior", False, 0
-            ),
-        )
-    train_indices = np.asarray(selected, dtype=int)
-    heldout_indices = np.asarray(test_indices, dtype=int)
-    train_y = labels[train_indices]
-    if set(np.unique(train_y).tolist()) != {0, 1}:
-        raise ValueError("adaptive v2 history prefix must contain both disclosed labels")
+def build_probe_classifiers(component_models, random_state):
+    """The single constructor shared by historical and persistent probe attacks."""
     logistic_config = component_models["logistic"]
     logistic = make_pipeline(
         StandardScaler(),
@@ -326,6 +298,40 @@ def fit_predict_probe_probability_v2(
         n_jobs=int(forest_config["n_jobs"]),
         random_state=int(random_state) + 2,
     )
+    return logistic, histogram, forest
+
+
+def fit_predict_probe_probability_v2(
+    *,
+    matrix: np.ndarray,
+    labels: np.ndarray,
+    history_indices: Sequence[int],
+    test_indices: Sequence[int],
+    observation_budget: int,
+    random_state: int,
+    component_models: Mapping[str, Mapping[str, Any]],
+) -> tuple[np.ndarray, AdaptiveFitReceipt]:
+    """Fit the frozen three-branch successor ensemble and average probabilities."""
+
+    if observation_budget < 0 or observation_budget > len(history_indices):
+        raise ValueError("adaptive v2 observation budget is outside the history pool")
+    selected = tuple(history_indices[:observation_budget])
+    identity = hashlib.sha256(
+        ",".join(str(index) for index in selected).encode("utf-8")
+    ).hexdigest()
+    if observation_budget == 0:
+        return (
+            np.zeros(len(test_indices), dtype=float),
+            AdaptiveFitReceipt(
+                0, 0, 0, identity, "constant-production-prior", False, 0
+            ),
+        )
+    train_indices = np.asarray(selected, dtype=int)
+    heldout_indices = np.asarray(test_indices, dtype=int)
+    train_y = labels[train_indices]
+    if set(np.unique(train_y).tolist()) != {0, 1}:
+        raise ValueError("adaptive v2 history prefix must contain both disclosed labels")
+    logistic, histogram, forest = build_probe_classifiers(component_models, random_state)
     probabilities = []
     for model in (logistic, histogram, forest):
         model.fit(matrix[train_indices], train_y)

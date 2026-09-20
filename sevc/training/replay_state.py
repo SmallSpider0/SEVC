@@ -25,19 +25,22 @@ class ReplayStatePermutation:
     seed: int
     channel_maps: dict[str, tuple[int, ...]]
     tensor_transforms: dict[str, TensorTransform]
+    mode: str = "permuted"
 
     @property
     def permutation_id(self) -> str:
         digest = hashlib.sha256()
         digest.update(self.model_key.encode("utf-8"))
         digest.update(str(self.seed).encode("utf-8"))
+        if self.mode != "permuted":
+            digest.update(self.mode.encode("utf-8"))
         for name, values in sorted(self.channel_maps.items()):
             digest.update(name.encode("utf-8"))
             digest.update(",".join(str(value) for value in values).encode("utf-8"))
         return digest.hexdigest()
 
     def to_dict(self) -> dict[str, object]:
-        return {
+        value = {
             "model_key": self.model_key,
             "seed": self.seed,
             "permutation_id": self.permutation_id,
@@ -52,6 +55,9 @@ class ReplayStatePermutation:
                 for key, value in sorted(self.tensor_transforms.items())
             },
         }
+        if self.mode != "permuted":
+            value["mode"] = self.mode
+        return value
 
 
 def _permutation(size: int, *, seed: int, domain: str) -> tuple[int, ...]:
@@ -144,8 +150,10 @@ def _resnet_transforms(model: nn.Module) -> tuple[dict[str, tuple[int, ...]], di
 
 
 def build_replay_state_permutation(
-    model: nn.Module, model_key: str, *, seed: int
+    model: nn.Module, model_key: str, *, seed: int, mode: str = "permuted"
 ) -> ReplayStatePermutation:
+    if mode not in {"permuted", "identity"}:
+        raise ValueError("unknown replay wrapper mode")
     key = model_key.lower()
     if key == "small-mlp":
         identity_maps, transforms = _mlp_transforms(model)
@@ -154,7 +162,7 @@ def build_replay_state_permutation(
     else:
         raise ValueError(f"unsupported replay permutation model: {model_key}")
     channel_maps = {
-        name: _permutation(len(values), seed=seed, domain=f"{key}|{name}")
+        name: (values if mode == "identity" else _permutation(len(values), seed=seed, domain=f"{key}|{name}"))
         for name, values in identity_maps.items()
     }
     return ReplayStatePermutation(
@@ -162,6 +170,7 @@ def build_replay_state_permutation(
         seed=int(seed),
         channel_maps=channel_maps,
         tensor_transforms=transforms,
+        mode=mode,
     )
 
 
@@ -179,6 +188,7 @@ def inverse_replay_state_permutation(
         seed=plan.seed,
         channel_maps=inverse,
         tensor_transforms=plan.tensor_transforms,
+        mode=plan.mode,
     )
 
 
@@ -199,6 +209,11 @@ def replay_state_permutation_from_descriptor(
         "channel_maps",
         "tensor_transforms",
     }
+    mode = descriptor.get("mode", "permuted")
+    if "mode" in descriptor:
+        if mode != "identity":
+            raise ValueError("explicit wrapper mode must be identity")
+        expected_fields.add("mode")
     if set(descriptor) != expected_fields:
         raise ValueError("replay permutation descriptor schema mismatch")
     model_key = str(descriptor["model_key"]).lower()
@@ -239,10 +254,11 @@ def replay_state_permutation_from_descriptor(
         seed=seed,
         channel_maps=channel_maps,
         tensor_transforms=transforms,
+        mode=mode,
     )
     if str(descriptor["permutation_id"]) != plan.permutation_id:
         raise ValueError("replay permutation identifier mismatch")
-    expected = build_replay_state_permutation(model, model_key, seed=seed)
+    expected = build_replay_state_permutation(model, model_key, seed=seed, mode=mode)
     if plan.channel_maps != expected.channel_maps:
         raise ValueError("replay permutation channel maps do not match the public seed")
     if plan.tensor_transforms != expected.tensor_transforms:

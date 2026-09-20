@@ -288,3 +288,5 @@ def _dataset_evidence(dataset: str, units: Sequence[Mapping[str, Any]], effectiv
     zero_invalid = next(row for row in tolerance_summary if row["ratio"] == 0.0 and row["origin_class"] == "registered-invalid-4tau")
     zero_anchor = {"dataset": dataset, "honest_false_reject_count": int(zero_honest["false_reject"]), "invalid_false_accept_count": int(zero_invalid["false_accept"]), "passed": int(zero_honest["false_reject"]) == 0 and int(zero_invalid["false_accept"]) == 0}
     return {"source_registry": source_registry, "segment_rows": [dict(row) for row in units], "attack_gate": attack_gate, "partial_rows": partial_rows, "partial_summary": partial_summary, "tolerance_rows": tolerance_rows, "tolerance_summary": tolerance_summary, "zero_anchor": zero_anchor}
+
+

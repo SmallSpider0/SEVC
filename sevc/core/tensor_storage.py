@@ -36,6 +36,14 @@ class AuthenticatedTensorFile:
         result._fingerprint = result.fingerprint()
         return result
 
+    def check_identity(self):
+        """A header may replace decoding only after bytes were authenticated."""
+        with self._lock:
+            if self._fingerprint is None or self.digest is None:
+                raise ValueError("compact source header lacks authenticated file capability")
+            if self.fingerprint() != self._fingerprint:
+                raise ValueError("immutable tensor file identity changed")
+
     def load(self):
         import torch
         from sevc.core.artifacts import sha256_file

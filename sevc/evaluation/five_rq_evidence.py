@@ -88,7 +88,7 @@ def audit_closed_screen(root):
 
 def workload_schedule(config, profile):
     """One immutable three-dataset campaign, or a disjoint technical schedule."""
-    if config.get('change_id') in {'experiment-tdsc-scoped-five-rq-confirmation-v1','experiment-tdsc-scoped-runtime-optimization-v1','experiment-tdsc-balanced-five-rq-v1','experiment-tdsc-bounded-memory-v1'}:
+    if config.get('change_id') in {'experiment-tdsc-scoped-five-rq-confirmation-v1','experiment-tdsc-scoped-runtime-optimization-v1','experiment-tdsc-balanced-five-rq-v1','experiment-tdsc-bounded-memory-v1','experiment-tdsc-claim-linked-tiny-v1','experiment-tdsc-local-tiny-feasibility-v1','experiment-tdsc-submission-tiny-v1','experiment-tdsc-server-unlock-evidence-v1'}:
         return [{'dataset':d,'stage':profile['namespace']} for d in config['scoped_candidate']['science']['dataset_order']]
     if config.get("change_id") == "experiment-tdsc-production-audit-repair-v1":
         study = config["repair_study"]

@@ -28,6 +28,11 @@ BOUNDED_CHANGE = "experiment-tdsc-bounded-memory-v1"
 RUNTIME_CHANGE = "experiment-tdsc-scoped-runtime-optimization-v1"
 GPU_STATE_CHANGE = "experiment-tdsc-gpu-state-transform-v1"
 STATE_COST_CHANGE = "experiment-tdsc-state-cost-breakdown-v1"
+CLAIM_LINKED_CHANGE = "experiment-tdsc-claim-linked-tiny-v1"
+LOCAL_TINY_CHANGE = "experiment-tdsc-local-tiny-feasibility-v1"
+SUBMISSION_TINY_CHANGE = "experiment-tdsc-submission-tiny-v1"
+SERVER_UNLOCK_CHANGE = "experiment-tdsc-server-unlock-evidence-v1"
+SUBMISSION_CHANGES = {SUBMISSION_TINY_CHANGE, SERVER_UNLOCK_CHANGE}
 
 
 class ReplayDevice:
@@ -174,12 +179,21 @@ def _run_repair_block(*, context, prepared, workload, index, seed, config, clock
 
 
 def run_tdsc_five_rq_evidence(repo_root, config_path, output_root, config, **unused):
+    if config.get("change_id") == "experiment-tdsc-minimal-prerepair-v1":
+        from sevc.experiments.minimal_prerepair import run_structural_screen
+        return run_structural_screen(repo_root, config_path, output_root, config, **unused)
     entry_start = time.monotonic()
     from sevc.training.replay_sources import ReplayDatasetContext
     key = config.get("_runtime_profile", config["default_profile"])
     profile = config["profiles"][key]
     repair = config.get("change_id") == REPAIR_CHANGE
-    scoped = config.get("change_id") in {SCOPED_CHANGE, RUNTIME_CHANGE, BALANCED_CHANGE, BOUNDED_CHANGE}
+    scoped = config.get("change_id") in {SCOPED_CHANGE, RUNTIME_CHANGE, BALANCED_CHANGE, BOUNDED_CHANGE, CLAIM_LINKED_CHANGE, LOCAL_TINY_CHANGE,*SUBMISSION_CHANGES}
+    fixed_design = config.get('change_id') in {'experiment-tdsc-f-fixed-design-v1', 'experiment-tdsc-f-fixed-design-v2', 'experiment-tdsc-rq1-detection-supplement-v1', 'experiment-tdsc-rq4-overhead-supplement-v1', 'experiment-tdsc-rq2-honest-participation-v1'}
+    cheap_tiny = config.get('change_id') in {'experiment-tdsc-cheap-discriminator-tiny-v1', 'experiment-tdsc-cheap-discriminator-tiny-v2'}
+    scoped = scoped or fixed_design or cheap_tiny
+    local_tiny = config.get('change_id') in {LOCAL_TINY_CHANGE,*SUBMISSION_CHANGES}
+    if config.get('engineering_equivalence_only'):
+        scoped=local_tiny=False
     output_root = Path(output_root)
     confirmation_barrier(config, profile, output_root)
     if config.get("_runtime_max_units") is not None:
@@ -205,6 +219,16 @@ def run_tdsc_five_rq_evidence(repo_root, config_path, output_root, config, **unu
         from sevc.experiments.source_distribution import validate_cuda
         validate_cuda(profile)
     output_root.mkdir(parents=True, exist_ok=False)
+    if fixed_design:
+        write_json(output_root/'replay-environment-lock.json',environment)
+    if config.get('server_only'):
+        (output_root/'replay-environment-lock.json').write_bytes(
+            Path(config['server_only']['environment_lock_path']).read_bytes())
+        if config['server_only'].get('bridge_lock_path'):
+            bridge_path=Path(config['server_only']['bridge_lock_path'])
+            (output_root/bridge_path.name).write_bytes(bridge_path.read_bytes())
+            evidence_path=Path(json.loads(bridge_path.read_text())['engineering_evidence_path'])
+            (output_root/evidence_path.name).write_bytes(evidence_path.read_bytes())
     events, phases, records, sources, commits = [AppendLog(output_root/name) for name in
         ("workload-units.jsonl", "phase-timing.jsonl", "assignment-audit.jsonl", "source-task-identities.jsonl", "report-lifecycle.jsonl")]
     audit_log = AppendLog(output_root/"audit-lifecycle.jsonl") if repair else None
@@ -213,8 +237,31 @@ def run_tdsc_five_rq_evidence(repo_root, config_path, output_root, config, **unu
     if scoped:
         from sevc.core.role_accounting import RoleClock
         from sevc.experiments.scoped_five_rq_units import ScopedStudy
-        clock = RoleClock(device.synchronize,phases,cuda=cuda,selective_cuda=perf.get("selective_cuda_timing",False))
+        if local_tiny:
+            from sevc.experiments.local_tiny_feasibility import LocalTinyStudy
+            ScopedStudy = LocalTinyStudy
+            if config.get('change_id') in SUBMISSION_CHANGES:
+                from sevc.experiments.submission_tiny import SubmissionTinyStudy
+                ScopedStudy = SubmissionTinyStudy
+        clock = RoleClock(device.synchronize,phases,cuda=cuda,selective_cuda=perf.get("selective_cuda_timing",False),
+                          resource_accounting=perf.get("resource_accounting"))
+        if fixed_design:
+            from sevc.experiments.f_fixed_design import FixedDesignStudy
+            ScopedStudy = FixedDesignStudy
+            if config.get('change_id') in {'experiment-tdsc-rq1-detection-supplement-v1', 'experiment-tdsc-rq2-honest-participation-v1'}:
+                from sevc.experiments.detection_supplement import DetectionSupplementStudy
+                ScopedStudy = DetectionSupplementStudy
+            if config.get("change_id") == "experiment-tdsc-rq4-overhead-supplement-v1":
+                from sevc.experiments.overhead_supplement import OverheadSupplementStudy
+                ScopedStudy = OverheadSupplementStudy
+        if cheap_tiny:
+            from sevc.experiments.cheap_discriminator_tiny import CheapDiscriminatorStudy
+            ScopedStudy = CheapDiscriminatorStudy
         study = ScopedStudy(config,profile,output_root,clock,records,sources,commits,events)
+    elif config.get('engineering_check') in {'owner-replay-repair-v1', 'owner-cost-repair-v1','f-readiness-repair-v1'}:
+        from sevc.core.role_accounting import RoleClock
+        clock = RoleClock(device.synchronize, phases, cuda=cuda,
+                          selective_cuda=perf.get('selective_cuda_timing', False))
     sampler = GPUSampler(output_root, profile.get("gpu_uuid", "CPU-FIXTURE"), cuda)
     provenance = {"change_id": config.get("change_id", CHANGE), "profile": key, "full_matrix": profile["full_matrix"],
         "scientifically_eligible": False, "namespace": profile["namespace"],
@@ -229,25 +276,56 @@ def run_tdsc_five_rq_evidence(repo_root, config_path, output_root, config, **unu
     try:
         sampler.start()
         entire_start = time.monotonic()
-        for workload in workload_schedule(config, profile):
+        workloads = ([{'dataset':d,'stage':'engineering-equivalence'} for d in config['datasets']]
+            if config.get('engineering_equivalence_only') or fixed_design or cheap_tiny else list(workload_schedule(config, profile)))
+        if fixed_design:
+            workloads=[{'dataset':d,'stage':'fixed-design','fixed_phase':phase}
+                for phase in config['fixed_design']['phase_order'] for d in config['datasets']]
+        if local_tiny:
+            study.run_structures()
+            workloads = ([{**w, 'local_phase':phase} for w in workloads for phase in ('core','bridge')]
+                if config.get('dataset_scoped_disclosure') else
+                [{**w, 'local_phase':phase} for phase in ('core','bridge') for w in workloads])
+        for workload in workloads:
             if profile["full_matrix"] and workload["stage"] == "confirmation" and screen_counterexample:
                 break
             dataset = workload["dataset"]
+            if local_tiny and dataset in study.closed_datasets:
+                continue
             spec = config["datasets"][dataset]
             clock.context = {"dataset": dataset}
             context, _ = clock.call("dataset_load", "owner", ReplayDatasetContext,
                 dataset, spec, Path(profile["data_root"]), device)
+            context.replay_environment_id = config.get('_runtime_replay_environment_id')
+            context.replay_environment_bridge = config.get('_runtime_replay_environment_bridge')
             partition = tuple(profile["sample_ranges"][dataset])
             if scoped:
+                if local_tiny:
+                    study.phase = workload['local_phase']
                 if not profile['full_matrix'] and profile.get('verify_equivalence',False):
                     result=verify_fixture_equivalence(context,partition,clock,perf)
                     write_json(output_root/f'equivalence-{dataset}.json',result)
+                if fixed_design:
+                    study.scheduled_phase=workload['fixed_phase']
                 study.run_dataset(context,partition)
+                if config.get('dataset_scoped_disclosure') and study.phase == 'bridge':
+                    study.run_calibration()
                 context.close_task_lanes()
+                if local_tiny:
+                    from sevc.core.scratch_cleanup import release_scratch
+                    for pending_path in tuple(getattr(study, "pending_scratch_cleanup", ())):
+                        release_scratch(study,pending_path)
                 continue
             if profile.get("equivalence_only"):
-                result = verify_fixture_equivalence(context, partition, clock, perf)
-                write_json(output_root/f"equivalence-{dataset}.json", result)
+                if config.get('engineering_check') == 'probe-compute-tiny-v1':
+                    from sevc.experiments.probe_compute_tiny import measure_components
+                    measure_components(context, partition, clock, perf, config, output_root)
+                elif config.get('engineering_equivalence_only'):
+                    from sevc.experiments.submission_acceleration import measure_equivalence
+                    measure_equivalence(context,partition,clock,perf,config,output_root)
+                else:
+                    result = verify_fixture_equivalence(context, partition, clock, perf)
+                    write_json(output_root/f"equivalence-{dataset}.json", result)
                 context.close_task_lanes()
                 continue
             for index in range(workload["blocks"]):
@@ -346,7 +424,9 @@ def run_tdsc_five_rq_evidence(repo_root, config_path, output_root, config, **unu
                         mechanism = "rcmp-source-coupled"
                         tasks = recovery_prepared.mechanisms[mechanism]
                         required_ids = tuple(r["task_id"] for r in recovery_prepared.audit_rows if r["role"] == "production")
-                        for policy in RECOVERY_CONTROLLERS.keys():
+                        for policy in ("current-certified-ecs", "fixed-order-same-reserve",
+                                       "all-response-certified-ecs", "no-recovery",
+                                       "online-only-joint-matching-v1"):
                             clock.context.update(fault=fault, recovery_policy=policy)
                             def activate(job_id, verifier_id):
                                 assignment_started = time.monotonic()
@@ -386,7 +466,20 @@ def run_tdsc_five_rq_evidence(repo_root, config_path, output_root, config, **unu
         for log in logs:
             log.close()
         if scoped:
-            from sevc.evaluation.scoped_result_audit import audit_and_summarize
+            if local_tiny:
+                from sevc.evaluation.local_tiny_feasibility import audit_and_summarize
+                if config.get('change_id') in SUBMISSION_CHANGES:
+                    from sevc.evaluation.submission_tiny import audit_and_summarize
+            else:
+                from sevc.evaluation.scoped_result_audit import audit_and_summarize
+            if fixed_design:
+                from sevc.evaluation.f_fixed_design import audit_and_summarize
+                if config.get('change_id') in {'experiment-tdsc-rq1-detection-supplement-v1', 'experiment-tdsc-rq2-honest-participation-v1'}:
+                    from sevc.evaluation.detection_supplement import audit_and_summarize
+                if config.get("change_id") == "experiment-tdsc-rq4-overhead-supplement-v1":
+                    from sevc.evaluation.overhead_supplement import audit_and_summarize
+            if cheap_tiny:
+                from sevc.evaluation.cheap_discriminator_tiny import audit_and_summarize
             audit_and_summarize(output_root,config,profile)
         entire_end = time.monotonic()
         sampler.finish(output_root)
@@ -406,6 +499,8 @@ def run_tdsc_five_rq_evidence(repo_root, config_path, output_root, config, **unu
             status = "REPAIR_EVIDENCE_AWAITING_INDEPENDENT_AUDIT"
         if scoped:
             status = 'STANDALONE_FULL_MATRIX_AUDITED' if profile['full_matrix'] else 'NONFORMAL_COMPLETE'
+        if fixed_design:
+            status = "F_COLLECTION_COMPLETE_AWAITING_INDEPENDENT_SCIENTIFIC_AUDIT"
         write_json(output_root/"status.json", {"status": status, "full_matrix_run_started": profile["full_matrix"]})
         write_json(output_root/"evidence-registry.json", evidence_registry(formal=profile["full_matrix"],status=status))
         write_json(output_root/"fixed-overhead.json", {"entry_setup_seconds": entire_start-entry_start,

@@ -17,9 +17,22 @@ def _tdsc_five_rq_runner(repo_root, config_path, output_root, resolved_config, *
     return run_tdsc_five_rq_evidence(repo_root, config_path, output_root, resolved_config, **kwargs)
 
 
+def _recovery_enumeration_runner(repo_root, config_path, output_root, resolved_config):
+    from .recovery_enumeration import run_recovery_enumeration
+    return run_recovery_enumeration(repo_root, config_path, output_root, resolved_config)
+
+
+def _replay_tolerance_runner(repo_root, config_path, output_root, resolved_config):
+    from .tdsc_replay_tolerance import run
+    return run(repo_root, config_path, output_root, resolved_config)
+
+
 
 def ensure_default_experiment_runners():
-    key = "tdsc-bounded-memory-v1"
-    if key not in EXPERIMENT_RUNNERS.keys():
-        EXPERIMENT_RUNNERS.add(key, _tdsc_five_rq_runner)
+    for key, runner in (("tdsc-bounded-memory-v1", _tdsc_five_rq_runner),
+                        ("tdsc-submission-tiny-v1", _tdsc_five_rq_runner),
+                        ("tdsc-rq3-value-preserving-recovery-v1", _recovery_enumeration_runner),
+                        ("tdsc-replay-tolerance-heterogeneity-v1", _replay_tolerance_runner)):
+        if key not in EXPERIMENT_RUNNERS.keys():
+            EXPERIMENT_RUNNERS.add(key, runner)
 ensure_default_experiment_runners()

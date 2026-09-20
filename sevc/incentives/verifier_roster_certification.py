@@ -37,6 +37,7 @@ PUBLIC_PREFIX_HYPERGEOM_BUDGET_FEASIBLE_MIN_POLICY_KEY = (
 MULTI_JOB_CAPACITY_CERTIFICATE_POLICY_KEY = (
     "public-multi-job-capacity-certified-min-v1"
 )
+ALL_RESPONSE_CAPACITY_CERTIFICATE_POLICY_KEY = "public-all-response-capacity-certified-min-v1"
 
 
 @dataclass(frozen=True)
@@ -48,6 +49,7 @@ class RosterCertificationPolicy:
     minimum_certificate_probability: float
     reliability_margin: float
     budget_feasible: bool = False
+    all_response_sets: bool = False
 
     def __post_init__(self) -> None:
         if not self.policy_key or self.policy_key != self.policy_key.strip().lower():
@@ -68,6 +70,17 @@ class RosterCertificationPolicy:
 
 ROSTER_CERTIFICATION_POLICIES: Registry[RosterCertificationPolicy] = Registry(
     "verifier paid-roster certification policy"
+)
+ROSTER_CERTIFICATION_POLICIES.add(
+    ALL_RESPONSE_CAPACITY_CERTIFICATE_POLICY_KEY,
+    RosterCertificationPolicy(
+        policy_key=ALL_RESPONSE_CAPACITY_CERTIFICATE_POLICY_KEY,
+        allowed_caps=(9, 20, 24, 28, 32, 33, 36, 40),
+        minimum_certificate_probability=0.925,
+        reliability_margin=0.0,
+        budget_feasible=True,
+        all_response_sets=True,
+    ),
 )
 ROSTER_CERTIFICATION_POLICIES.add(
     FIXED_M20_BASELINE_POLICY_KEY,
@@ -634,6 +647,52 @@ def _multi_job_hall_witness(
     }
 
 
+def all_response_capacity_witness(
+    *, jobs: Sequence[Any], requirements: Mapping[str, int],
+    entries: Sequence[Any], responsive_count: int,
+) -> dict[str, Any]:
+    """Exact Hall test for every responsive subset of a fixed cardinality.
+
+    For each job subset B, each member contributes min(capacity, neighbors in
+    B). Its smallest L contributions give the minimum over all L-member U.
+    The minimizing U may differ between B; no single sorted U is sufficient.
+    This certifies a static assignment, not an online scheduling policy.
+    """
+    from itertools import combinations
+
+    if not 0 <= responsive_count <= len(entries):
+        raise ValueError("responsive count is outside the roster")
+    if len({e.verifier_id for e in entries}) != len(entries):
+        raise ValueError("roster identities must be unique")
+    job_ids = tuple(sorted(j.job_id for j in jobs))
+    if not job_ids or len(set(job_ids)) != len(job_ids) or set(requirements) != set(job_ids):
+        raise ValueError("job identities and requirements must match")
+    if any(int(v) != v or v < 0 for v in requirements.values()):
+        raise ValueError("job demands must be nonnegative integers")
+    if any(int(e.capacity) != e.capacity or e.capacity < 0 for e in entries):
+        raise ValueError("capacities must be nonnegative integers")
+    rows = []
+    for count in range(1, len(job_ids) + 1):
+        for subset in combinations(job_ids, count):
+            contributions = sorted(
+                (min(int(e.capacity), sum(j not in e.conflict_job_ids for j in subset)), e.verifier_id)
+                for e in entries
+            )[:responsive_count]
+            supply = sum(value for value, _ in contributions)
+            demand = sum(int(requirements[j]) for j in subset)
+            rows.append({"job_ids": list(subset), "supply": supply, "demand": demand,
+                         "margin": supply - demand,
+                         "worst_responsive_ids": [v for _, v in contributions]})
+    tight = min(rows, key=lambda r: r["margin"])
+    return {"all_job_subsets_enumerated": True, "all_response_sets_covered": True,
+            "response_domain": "every subset of exactly L roster members",
+            "responsive_count": responsive_count,
+            "response_set_count": math.comb(len(entries), responsive_count),
+            "subset_count": len(rows), "minimum_margin": tight["margin"],
+            "tight_subset": tight, "subsets": rows, "passed": tight["margin"] >= 0,
+            "scope": "static-capacity-feasibility; executed scheduling checked separately"}
+
+
 def _minimum_capacity_reliability_witness(
     *, ordered_reputations: Sequence[float], reliability_target: float
 ) -> dict[str, Any]:
@@ -680,6 +739,7 @@ def certify_registered_multi_job_capacity(
     frozen_dropout_fraction: float,
     sentinel_generation_cost_per_assignment: float,
     adjudication_reserve_per_assignment: float,
+    fixed_roster: ReserveRoster | None = None,
 ) -> tuple[ReserveRoster, dict[str, Any]]:
     """Choose the smallest public reliability/capacity/cost-certified roster.
 
@@ -690,7 +750,8 @@ def certify_registered_multi_job_capacity(
     """
 
     policy = ROSTER_CERTIFICATION_POLICIES.get(policy_key)
-    if policy.policy_key != MULTI_JOB_CAPACITY_CERTIFICATE_POLICY_KEY:
+    if policy.policy_key not in {MULTI_JOB_CAPACITY_CERTIFICATE_POLICY_KEY,
+                               ALL_RESPONSE_CAPACITY_CERTIFICATE_POLICY_KEY}:
         raise ValueError("multi-job certificate requires its registered policy")
     probability = float(minimum_certificate_probability)
     if not 0.0 < probability <= 1.0:
@@ -733,7 +794,7 @@ def certify_registered_multi_job_capacity(
     evaluated: list[dict[str, Any]] = []
     rosters: dict[int, ReserveRoster] = {}
     for m in candidates:
-        roster = build_registered_reserve_roster(
+        roster = fixed_roster or build_registered_reserve_roster(
             implementation_key=implementation_key,
             scenario_id=scenario_id,
             parameter_set_id=parameter_set_id,
@@ -743,6 +804,11 @@ def certify_registered_multi_job_capacity(
             order_seed=order_seed,
             availability_terms=availability_terms,
         )
+        if fixed_roster is not None:
+            if (tuple(m_candidates) != (len(roster.entries),)
+                    or roster.primary_committees != tuple(primary_committees)
+                    or {e.verifier_id for e in roster.entries} != {o.verifier_id for o in offer_rows}):
+                raise ValueError("fixed raw roster identity differs from certificate inputs")
         rosters[m] = roster
         roster_size = len(roster.entries)
         responsive_bound, responsive_probability = _responsive_roster_lower_bound(
@@ -787,6 +853,12 @@ def certify_registered_multi_job_capacity(
             responsive_entries=conservative_responsive,
         )
         total_supply = sum(int(item.capacity) for item in conservative_responsive)
+        if policy.all_response_sets:
+            hall = all_response_capacity_witness(
+                jobs=job_rows, requirements=requirements, entries=roster.entries,
+                responsive_count=responsive_bound,
+            )
+            total_supply = sum(sorted(int(e.capacity) for e in roster.entries)[:responsive_bound])
         total_demand = sum(requirements.values())
         total_capacity_margin = total_supply - total_demand - 1
         maximum_requirement = max(requirements.values(), default=0)
@@ -858,7 +930,8 @@ def certify_registered_multi_job_capacity(
     chosen = next((item for item in evaluated if item["passed"]), None)
     chosen_m = int(chosen["m"]) if chosen is not None else hard_ceiling
     record = {
-        "schema_version": "sevc-public-multi-job-capacity-certificate-v1",
+        "schema_version": ("sevc-public-all-response-capacity-certificate-v1"
+                           if policy.all_response_sets else "sevc-public-multi-job-capacity-certificate-v1"),
         "policy_key": policy.policy_key,
         "implementation_key": implementation_key,
         "scenario_id": scenario_id,

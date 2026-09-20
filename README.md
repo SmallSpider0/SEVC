@@ -139,5 +139,7 @@ This is a one-time source distribution. The development project remains separate
 there is no automatic synchronization or ongoing development commitment for this
 snapshot. `public-manifest.json` records the distributed source files and hashes.
 
-No license file is included in this repository. The owner has chosen to publish
-the source first and defer license selection.
+A redistribution license has not yet been selected. The repository owner must
+add the intended license and any required notices before public release. No
+license grant, author contact information, or public repository URL is invented
+by this snapshot.

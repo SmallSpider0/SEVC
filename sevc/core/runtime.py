@@ -28,7 +28,9 @@ def set_global_seed(seed: int, *, deterministic: bool = True) -> None:
         torch.cuda.manual_seed(seed)
         torch.cuda.manual_seed_all(seed)
     if deterministic:
-        torch.use_deterministic_algorithms(True, warn_only=True)
+        strict = (torch.are_deterministic_algorithms_enabled()
+                  and not torch.is_deterministic_algorithms_warn_only_enabled())
+        torch.use_deterministic_algorithms(True, warn_only=not strict)
 
 
 def configure_torch_thread_caps_from_environment() -> dict[str, int]:

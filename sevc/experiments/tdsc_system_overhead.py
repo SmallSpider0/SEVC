@@ -1007,3 +1007,5 @@ def _compare_observer_effect(
         "uninstrumented_settlement": right_settlement,
         "passed": not mismatches,
     }
+
+

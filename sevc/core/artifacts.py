@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from dataclasses import asdict, is_dataclass
 
+from datetime import datetime, timezone
+
 import hashlib
 
 import json
@@ -12,11 +14,15 @@ import os
 
 from pathlib import Path
 
+import platform
+
 import tempfile
 
 from typing import Any
 
 import numpy as np
+
+from .runtime import device_capabilities
 
 def sha256_file(path: Path) -> str:
     digest = hashlib.sha256()
@@ -68,3 +74,58 @@ def write_json(path: Path, payload: Any) -> None:
         handle.write(encoded)
         temporary_path = Path(handle.name)
     os.replace(temporary_path, path)
+
+
+def ensure_experiment_output_root(
+    output_root: Path,
+    repo_root: Path,
+    change_id: str,
+    *,
+    required_parent: Path | None = None,
+) -> Path:
+    if not output_root.is_absolute():
+        raise ValueError("experiment output root must be absolute")
+    resolved_output = output_root.resolve(strict=False)
+    resolved_repo = repo_root.resolve(strict=False)
+    if resolved_output == resolved_repo or resolved_repo in resolved_output.parents:
+        raise ValueError("experiment output root must be outside the repository")
+    required_parent = (
+        required_parent
+        if required_parent is not None
+        else resolved_output.parent
+    ).resolve(strict=False)
+    if resolved_output != required_parent and required_parent not in resolved_output.parents:
+        raise ValueError(
+            f"output root must be below {required_parent}, got {resolved_output}"
+        )
+    resolved_output.mkdir(parents=True, exist_ok=True)
+    return resolved_output
+
+
+def capture_environment() -> dict[str, Any]:
+    dependency_versions: dict[str, str | None] = {}
+    for name in (
+        "numpy",
+        "scipy",
+        "sklearn",
+        "torch",
+        "torchvision",
+        "matplotlib",
+        "transformers",
+        "huggingface_hub",
+    ):
+        try:
+            module = __import__(name)
+        except ImportError:
+            dependency_versions[name] = None
+        else:
+            dependency_versions[name] = str(getattr(module, "__version__", "unknown"))
+    return {
+        "captured_at_utc": datetime.now(timezone.utc).isoformat(),
+        "python": platform.python_version(),
+        "platform": platform.platform(),
+        "device_capabilities": device_capabilities(),
+        "dependencies": dependency_versions,
+    }
+
+

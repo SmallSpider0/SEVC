@@ -75,3 +75,5 @@ def trainer_contract_selections(
     return selections, tuple(
         float(selection.item.contribution) for selection in selections
     )
+
+

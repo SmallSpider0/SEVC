@@ -21,6 +21,31 @@ context across questions. `inspect` lists exact package counts from the frozen
 public parameters. Matrix expansion preserves its declared independent units
 and exact reuse; reused rows do not create additional independent observations.
 
+## Current four-question evaluation
+
+The manuscript's current evaluation (detection, incentives, settlement and
+recovery, overhead) runs through the same runner. The registry exposes
+`tdsc-submission-tiny-v1` for the fixed-design main study and its detection,
+participation and cost supplements, `tdsc-rq3-value-preserving-recovery-v1` for the
+constructed recovery instances, and `tdsc-replay-tolerance-heterogeneity-v1` for
+the replay-tolerance study. Their full configurations contain private deployment
+fields and are not bundled; `configs/tdsc_replay_tolerance_heterogeneity_v1.json`
+is a public projection that runs as a non-formal standalone study after
+`data_root` is set.
+
+| Question / analysis | Main implementation |
+|---|---|
+| RQ1 detection, verifier view and native comparison | `verification/on_demand_service.py`, `verification/replay_coupled_probes.py`, `evaluation/verifier_view_linkability.py`, `committee/depol_arbitration.py`, `verification/depol_local.py`, `evaluation/depol_shared_shortcut.py` |
+| RQ2 incentives and bond sensitivity | `evaluation/f_rq234_audit.py`, `evaluation/cost_incentive_reanalysis.py` |
+| RQ3 settlement and recovery | `committee/executed_recovery.py`, `experiments/recovery_enumeration.py`, `evaluation/value_preserving_recovery.py` |
+| RQ4 overhead and matched-budget coverage | `core/role_accounting.py`, `evaluation/overhead_supplement.py`, `evaluation/cost_incentive_reanalysis.py` |
+| Owner-verified source failures | `verification/reference_acquisition.py`, `evaluation/owner_failure_branch_audit.py` |
+| Replay tolerance across numerical configurations | `experiments/tdsc_replay_tolerance.py` |
+
+The analysis modules read recorded unit rows supplied by the user; no recorded
+rows are bundled. Envelope equalization is available as the method key
+`rcmp-opaque-gradient-continuation-gpu-equalized-v1`.
+
 ## Earlier main experiments
 
 The following scientific routines are retained from the earlier studies. Their
