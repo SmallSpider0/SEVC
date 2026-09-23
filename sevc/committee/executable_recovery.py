@@ -18,11 +18,13 @@ def planner(compatibility):
     return legacy
 
 
-def public_compatibility(offers):
+def public_compatibility(offers, *, registered_correctness=True):
+    """Compatibility masks; the exact three-report planner is registered only for p=.9, while the
+    value-preserving controller derives its quorum from the roster and passes False."""
     by_id = {o.verifier_id: o for o in offers}
     if set(by_id) != {f'v{i}' for i in range(9)}:
         raise ValueError('executable certificate is limited to nine explicit identities')
-    if any(o.capacity != 1 or o.reputation != .9 for o in offers):
+    if any(o.capacity != 1 or (registered_correctness and o.reputation != .9) for o in offers):
         raise ValueError('executable certificate requires capacity one and conditional p=.9')
     return tuple(sum(1 << j for j in (0, 1)
                      if o.accepts_offer and f'j{j}' not in o.conflict_job_ids)

@@ -50,6 +50,8 @@ def equivalence_projection(job, result):
 
 
 class OverheadSupplementStudy(FixedDesignStudy):
+    PHASES = tuple(COUNTS)
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.pair_receipts = {}
@@ -60,7 +62,7 @@ class OverheadSupplementStudy(FixedDesignStudy):
     def run_dataset(self, context, partition):
         from sevc.evaluation.f_fixed_design import seal_stage
         self.context = context
-        for phase in ([self.scheduled_phase] if hasattr(self, 'scheduled_phase') else list(COUNTS)):
+        for phase in ([self.scheduled_phase] if hasattr(self, 'scheduled_phase') else list(self.PHASES)):
             if phase == 'primary' and self.primary_reused:
                 continue
             self.phase = phase

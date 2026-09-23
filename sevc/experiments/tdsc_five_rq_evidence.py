@@ -188,7 +188,7 @@ def run_tdsc_five_rq_evidence(repo_root, config_path, output_root, config, **unu
     profile = config["profiles"][key]
     repair = config.get("change_id") == REPAIR_CHANGE
     scoped = config.get("change_id") in {SCOPED_CHANGE, RUNTIME_CHANGE, BALANCED_CHANGE, BOUNDED_CHANGE, CLAIM_LINKED_CHANGE, LOCAL_TINY_CHANGE,*SUBMISSION_CHANGES}
-    fixed_design = config.get('change_id') in {'experiment-tdsc-f-fixed-design-v1', 'experiment-tdsc-f-fixed-design-v2', 'experiment-tdsc-rq1-detection-supplement-v1', 'experiment-tdsc-rq4-overhead-supplement-v1', 'experiment-tdsc-rq2-honest-participation-v1'}
+    fixed_design = config.get('change_id') in {'experiment-tdsc-f-fixed-design-v1', 'experiment-tdsc-f-fixed-design-v2', 'experiment-tdsc-rq1-detection-supplement-v1', 'experiment-tdsc-rq4-overhead-supplement-v1', 'experiment-tdsc-rq2-honest-participation-v1', 'experiment-tdsc-rq4-cost-scaling-v1'}
     cheap_tiny = config.get('change_id') in {'experiment-tdsc-cheap-discriminator-tiny-v1', 'experiment-tdsc-cheap-discriminator-tiny-v2'}
     scoped = scoped or fixed_design or cheap_tiny
     local_tiny = config.get('change_id') in {LOCAL_TINY_CHANGE,*SUBMISSION_CHANGES}
@@ -254,6 +254,9 @@ def run_tdsc_five_rq_evidence(repo_root, config_path, output_root, config, **unu
             if config.get("change_id") == "experiment-tdsc-rq4-overhead-supplement-v1":
                 from sevc.experiments.overhead_supplement import OverheadSupplementStudy
                 ScopedStudy = OverheadSupplementStudy
+            if config.get("change_id") == "experiment-tdsc-rq4-cost-scaling-v1":
+                from sevc.experiments.cost_scaling import CostScalingStudy
+                ScopedStudy = CostScalingStudy
         if cheap_tiny:
             from sevc.experiments.cheap_discriminator_tiny import CheapDiscriminatorStudy
             ScopedStudy = CheapDiscriminatorStudy
@@ -478,6 +481,8 @@ def run_tdsc_five_rq_evidence(repo_root, config_path, output_root, config, **unu
                     from sevc.evaluation.detection_supplement import audit_and_summarize
                 if config.get("change_id") == "experiment-tdsc-rq4-overhead-supplement-v1":
                     from sevc.evaluation.overhead_supplement import audit_and_summarize
+                if config.get("change_id") == "experiment-tdsc-rq4-cost-scaling-v1":
+                    from sevc.evaluation.cost_scaling import audit_and_summarize
             if cheap_tiny:
                 from sevc.evaluation.cheap_discriminator_tiny import audit_and_summarize
             audit_and_summarize(output_root,config,profile)

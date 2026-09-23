@@ -26,7 +26,7 @@
     },
     {
       "relative_path": "docs/experiments.md",
-      "sha256": "4bf44260a0d9f7824a08078c28f414b90b0667808f8c5271da45d5482e2f451d"
+      "sha256": "dc560d120b85a0f7af488576196ccc04ed712201d4507a498a941728abaf7c54"
     },
     {
       "relative_path": "docs/inputs.md",
@@ -70,11 +70,11 @@
     },
     {
       "relative_path": "sevc/committee/executable_recovery.py",
-      "sha256": "e15eb61b846a5629b82698e2a090445bb5e3b0f6f9657dbcd3d146598959e829"
+      "sha256": "fcac53114ed337f4e4e39ab0aed9a9ba3a33ba9f9797e87fb1a12bbe9b1c52a2"
     },
     {
       "relative_path": "sevc/committee/executed_recovery.py",
-      "sha256": "5318843a9b1d66c311f41a6d96ccc369c14704cda1a3d68558affbb72bca9c13"
+      "sha256": "ff540b4e90e235cf026fcdbe84787e3a35e92f1ccdcc9b9aa64cfbd5b55834a5"
     },
     {
       "relative_path": "sevc/committee/formation.py",
@@ -185,6 +185,10 @@
       "sha256": "0cfd9c47a61a5d25b7b7db71e4475f273dfad7641c2fa5a5257ef79311a1cfe7"
     },
     {
+      "relative_path": "sevc/evaluation/cost_scaling.py",
+      "sha256": "433f8434e740afca1ea9cfd89336f8f923d5e6c74f9801272d6eeaa2b777ada6"
+    },
+    {
       "relative_path": "sevc/evaluation/depol_shared_shortcut.py",
       "sha256": "e567c138ac8f7749143723fe11d04843727a12f1e57d62d2e76555576994194b"
     },
@@ -193,8 +197,12 @@
       "sha256": "1083080b629a729154ae26aa28785261239e8c53ced97fb1330c7f67050bda9c"
     },
     {
+      "relative_path": "sevc/evaluation/end_to_end_comparison.py",
+      "sha256": "6c984bda5bcc1f5da49080cf1f2db307d4adf4049fee0875118355200b84e2a2"
+    },
+    {
       "relative_path": "sevc/evaluation/f_fixed_design.py",
-      "sha256": "c480fe8816e71bc94169e47c82635b133754dcc4339c121b6029bfb410d34e02"
+      "sha256": "2a0d4581b1b8681f2af379b4be7a75a9d4618d5b853033d27f13e1a7426fd315"
     },
     {
       "relative_path": "sevc/evaluation/f_rq234_audit.py",
@@ -309,6 +317,10 @@
       "sha256": "17ed02f958e62b4421a94589b21eec55510e880c7408b0a9488463e2279b2029"
     },
     {
+      "relative_path": "sevc/experiments/cost_scaling.py",
+      "sha256": "d1e9688f7b4dbbb93c2ed4a18b03ed24a0c1b66c332d4e91e62f13320819aa9f"
+    },
+    {
       "relative_path": "sevc/experiments/detection_supplement.py",
       "sha256": "f3a9be66109c05fa7b84a28aa896cd52baf4b49c9b9fb50b827be2f143f70c56"
     },
@@ -330,7 +342,7 @@
     },
     {
       "relative_path": "sevc/experiments/overhead_supplement.py",
-      "sha256": "0e43c7f407a53b51d99984283d52f247465f74eefd2703fc8bc840b0d6416997"
+      "sha256": "a82cf476edd652f8511eb4d278184985645ba48af3445a03899633c6cad20c01"
     },
     {
       "relative_path": "sevc/experiments/owner_cost_repair.py",
@@ -358,7 +370,7 @@
     },
     {
       "relative_path": "sevc/experiments/scoped_five_rq_units.py",
-      "sha256": "13cb0b5544c368117b832026cb928372808b4bcc450d6390a2b9773757f2fa1c"
+      "sha256": "510086d9bdb45e3220112ce3f50a162f5af264b29f60ef5938054a1e59e39f58"
     },
     {
       "relative_path": "sevc/experiments/server_unlock_evidence.py",
@@ -398,7 +410,7 @@
     },
     {
       "relative_path": "sevc/experiments/tdsc_five_rq_evidence.py",
-      "sha256": "68992101ee277d217ddb578141262d391b7106bc7e440818bbf2aaa3fc820179"
+      "sha256": "06daebf63b8d8f8e4986e937d457082c50537a7e26440a79fb8d081cca75922b"
     },
     {
       "relative_path": "sevc/experiments/tdsc_replay_tolerance.py",
@@ -502,7 +514,7 @@
     },
     {
       "relative_path": "sevc/verification/on_demand_service.py",
-      "sha256": "6dd883ac068e54579f90b17248c4d9246587120f06f27b83c935aed798a9600c"
+      "sha256": "ff914a5e36a56898aa1586d6f195fe4718d58b62ea843a8db9719f2d24fec186"
     },
     {
       "relative_path": "sevc/verification/paid_replay_service.py",
@@ -518,7 +530,7 @@
     },
     {
       "relative_path": "sevc/verification/reference_acquisition.py",
-      "sha256": "0d79300e0f4bc071da8e5787f135ae610c522b00b477a201a87957953f96d5be"
+      "sha256": "f58f341d517355860b4a06ec9e451d9f9335d0168110aa15d5512780054fdf67"
     },
     {
       "relative_path": "sevc/verification/replay_coupled_probes.py",
@@ -559,6 +571,10 @@
     {
       "relative_path": "tests/test_distribution.py",
       "sha256": "18feeb8955dc58774d3623b51d12d28dce51721b897c8eac9a3a3b3f5fbfb2ca"
+    },
+    {
+      "relative_path": "tests/test_end_to_end_comparison.py",
+      "sha256": "a61f2accc957b4459b2684ad074035be25ddd6e35454a8b528a2ec686b189533"
     },
     {
       "relative_path": "tests/test_owner_failure_branch_audit.py",

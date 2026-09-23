@@ -121,10 +121,10 @@ class Source:
 def build_source_bank(context, *, seed, namespace, partition, steps, batch_size,
                       invalid_count, clock, initial_state=None, initial_momentum=None,
                       count=40, source_offset=0, role="trainer", scratch_dir=None, initial_rng=None,
-                      access_profile="strict", capture_compact_headers=False):
-    if not 0 <= invalid_count <= 40:
+                      access_profile="strict", capture_compact_headers=False, population=40):
+    if not 0 <= invalid_count <= population:
         raise ValueError("invalid source corruption count")
-    invalid_ids = {(24 + j) % 40 for j in range(invalid_count)}
+    invalid_ids = {(24 + j) % population for j in range(invalid_count)}
     bank, rows, trainer_cache = [], [], {}
     for index in range(source_offset, source_offset + count):
         clock.context["source_index"] = index
@@ -220,7 +220,7 @@ def replay_owner_proof(proof, *, context, clock, performance, phase):
 class OnlineJob:
     def __init__(self, *, bank, context, clock, performance, job_id, method_key,
                  role_secret, emit, paired_production=None, gold_factory=None, delivery_scratch_dir=None,
-                 prepare_only=False):
+                 prepare_only=False, production_count=32):
         self.context, self.clock, self.performance = context, clock, performance
         self.job_id, self.method = job_id, METHODS.get(method_key)
         self.method_key, self.emit = method_key, emit
@@ -230,15 +230,18 @@ class OnlineJob:
         from sevc.core.replay_environment import require_sources
         require_sources(bank, getattr(context, 'replay_environment_id', None), getattr(context, 'replay_environment_bridge', None))
         self.bank = {s.hashes["proof_sha256"]: s for s in bank}
-        if len(self.bank) != 40:
+        # Eight committed sources become probes; the rest are production tasks.
+        if production_count < 32 or len(self.bank) != production_count + 8:
             raise ValueError("committed source bank is not forty unique proofs")
+        self.production_count = production_count
         self.references = JobReferences(job_id, self._replay, emit)
         self.probes = None
         self.task_rows, self.tasks, self.production = [], (), {}
         selected = []
         if self.method.probes == "source":
             self.preparation = acquire_probe_sources(tuple(self.bank), secret_hex=role_secret,
-                                                      references=self.references)
+                                                      references=self.references,
+                                                      population=production_count + 8)
             if not self.preparation["issued"]:
                 self.issued = False
                 return
@@ -247,7 +250,7 @@ class OnlineJob:
             if paired_production is not None:
                 raise ValueError("RCMP controller must not receive paired production IDs")
         else:
-            if paired_production is None or len(set(paired_production)) != 32:
+            if paired_production is None or len(set(paired_production)) != production_count:
                 raise ValueError("comparison receives exactly 32 target identities")
             production_ids = list(paired_production)
             if not set(production_ids) <= self.bank.keys():
@@ -285,7 +288,7 @@ class OnlineJob:
         def compile_one(item):
             rank, source = item
             sid = source.hashes["proof_sha256"]
-            borrowed_header = (rank < 36 and self.method.wrapper_profile == "identity"
+            borrowed_header = (rank < production_count + 4 and self.method.wrapper_profile == "identity"
                 and performance.get("compact_source_headers", False)
                 and performance.get("identity_disk_delivery", False)
                 and source.compact_header is not None and source.path is not None)
@@ -299,8 +302,9 @@ class OnlineJob:
                 # after the transformed model/optimizer states have been copied.
                 source_proof = replace(source_proof, batches=tuple(
                     (x.clone(), y.clone()) for x, y in source_proof.batches))
-            role = "production" if rank < 32 else "control" if rank < 36 else "challenge"
-            atom = ATOM_KEYS[rank - 36] if role == "challenge" else None
+            role = ("production" if rank < production_count else
+                    "control" if rank < production_count + 4 else "challenge")
+            atom = ATOM_KEYS[rank - production_count - 4] if role == "challenge" else None
             from sevc.verification.public_replay_shortcuts import opaque_source_handle
             public_binding = (opaque_source_handle(role_secret, job_id, sid)
                               if self.method.source_binding == "opaque" else sid)

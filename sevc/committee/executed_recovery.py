@@ -33,6 +33,7 @@ RECOVERY_CONTROLLERS.add("action-certified-ecs-v3", True)
 RECOVERY_CONTROLLERS.add("value-preserving-exact", True)
 RECOVERY_CONTROLLERS.add("value-preserving-rc", True)
 FAULTS = ("no-missing", "one-missing", "correlated-missing", "insufficient-reserve")
+JOB_RELIABILITY_TARGET = .95
 
 
 def build_execution_roster(seed: int, owner_cost_reserve_per_assignment: float = 0., *,
@@ -49,7 +50,7 @@ def build_execution_roster(seed: int, owner_cost_reserve_per_assignment: float =
     offers = tuple(PublicVerifierOffer(f"v{i}", reputations[f"v{i}"], 1, True, "assignment",
                    service_fee, service_bond,
                    conflict_job_ids=tuple((public_conflicts or {}).get(f"v{i}", ()))) for i in range(9))
-    jobs = tuple(VerificationJob(f"j{i}", 40, .95) for i in range(2))
+    jobs = tuple(VerificationJob(f"j{i}", 40, JOB_RELIABILITY_TARGET) for i in range(2))
     committees = tuple(CommitteeAssignment(j.job_id, tuple(f"v{k}" for k in range(i*3, i*3+3)),
                                            majority_success_probability([reputations[f"v{k}"]
                                                for k in range(i*3, i*3+3)]))
@@ -121,10 +122,18 @@ def execute_recovery(*, policy: str, fault: str, seed: int, required_ids: tuple[
         raise ValueError("executable certificate requires serial activation")
     online_only = policy == "online-only-joint-matching-v1" or executable
     all_response_sets = all_response_sets or policy == "all-response-certified-ecs" or online_only
+    # The decision-set size follows the roster's correctness inputs (Section ECS): the smallest odd
+    # majority reaching the job target.  The registered 0.9 roster yields the three-report quorum.
+    from sevc.committee.recovery_game import required_passes
+    roster_correctness = ([.9] * 9 if verifier_reputations is None
+                          else [float(v) for v in verifier_reputations.values()])
+    decision_quorum = required_passes(min(roster_correctness), JOB_RELIABILITY_TARGET)
+    if decision_quorum is None:
+        raise ValueError("roster correctness cannot reach the job reliability target")
     if all_response_sets:
         # A two-report intermediate wave must still progress toward the
-        # three-report terminal quorum, even if its raw majority bound dips.
-        minimum_pass_count = 3
+        # terminal quorum, even if its raw majority bound dips.
+        minimum_pass_count = decision_quorum
     if ((fault not in FAULTS and missing_ids is None) or timeout_seconds <= 0 or deadline_seconds < 0
             or owner_cost_reserve_per_assignment < 0 or owner_prepaid_cost_per_job < 0):
         raise ValueError("invalid frozen fault/deadline")
@@ -179,7 +188,8 @@ def execute_recovery(*, policy: str, fault: str, seed: int, required_ids: tuple[
     if value_rc:
         from sevc.committee import recovery_game
         from sevc.committee.executable_recovery import public_compatibility
-        rc_game = recovery_game.Game(public_compatibility(offers), (3, 3), 2)
+        rc_game = recovery_game.Game(public_compatibility(offers, registered_correctness=False),
+                                     (decision_quorum,) * 2, 2)
         root = recovery_game.certify(rc_game, recovery_game.PublicState.initial(rc_game))
         certificate = {"certificate_passed": None, "status": "VALUE_COMMITMENT_NO_ADMISSION",
                        "guaranteed_count": root["guaranteed_count"],
@@ -266,7 +276,8 @@ def execute_recovery(*, policy: str, fault: str, seed: int, required_ids: tuple[
                 committed_verifier_ids=[r.verifier_id for r in reports[job.job_id]],
                 settlement_statuses=statuses[job.job_id])
             if result.status == "RECONSTITUTED":
-                verdict = required_segment_decision(required_by_job[job.job_id], reports[job.job_id], result.verifier_ids)
+                verdict = required_segment_decision(required_by_job[job.job_id], reports[job.job_id],
+                                                    result.verifier_ids, required_votes=len(result.verifier_ids))
                 if verdict is not None and now()-started <= deadline_seconds:
                     decisions[job.job_id] = {"route": "accept" if verdict else "reject",
                         "trainer_reward": 1. if verdict else 0., "misconduct": int(not verdict),
@@ -287,7 +298,7 @@ def execute_recovery(*, policy: str, fault: str, seed: int, required_ids: tuple[
         elif value_rc:
             state = recovery_game.PublicState(
                 sum(1 << i for i in range(9) if not usage.get(f"v{i}", 0)),
-                [min(3, sum(e["job_id"] == f"j{j}" and e["status"] == "PASS" for e in published))
+                [min(decision_quorum, sum(e["job_id"] == f"j{j}" and e["status"] == "PASS" for e in published))
                  for j in range(2)],
                 sum(e["status"] != "PASS" for e in published))
             pairs, step = recovery_game.rc_round(rc_game, state, rc_memory)

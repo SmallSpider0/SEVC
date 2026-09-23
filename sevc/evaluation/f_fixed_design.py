@@ -32,6 +32,9 @@ def validate_activation(config,profile,root):
     if config['change_id']=='experiment-tdsc-rq4-overhead-supplement-v1':
         from sevc.evaluation.overhead_supplement import validate_scope
         validate_scope(config)
+    if config['change_id']=='experiment-tdsc-rq4-cost-scaling-v1':
+        from sevc.evaluation.cost_scaling import validate_scope
+        validate_scope(config)
     units=config['fixed_design_units']
     if len({u['unit_id'] for u in units})!=len(units) or commitment(units)!=lock['matrix_commitment']:
         raise PermissionError('matrix drift')

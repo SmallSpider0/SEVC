@@ -96,7 +96,7 @@ class ScopedStudy:
         self.records,self.sources,self.commits,self.events=records,sources,commits,events
         self.candidate=config['scoped_candidate']
         self.claim_linked = self.candidate.get('protocol_variant') == 'claim-linked-tiny-v1'
-        self.units=(config['fixed_design_units'] if config.get('change_id') in {'experiment-tdsc-f-fixed-design-v1', 'experiment-tdsc-f-fixed-design-v2', 'experiment-tdsc-rq1-detection-supplement-v1', 'experiment-tdsc-rq4-overhead-supplement-v1', 'experiment-tdsc-rq2-honest-participation-v1'}
+        self.units=(config['fixed_design_units'] if config.get('change_id') in {'experiment-tdsc-f-fixed-design-v1', 'experiment-tdsc-f-fixed-design-v2', 'experiment-tdsc-rq1-detection-supplement-v1', 'experiment-tdsc-rq4-overhead-supplement-v1', 'experiment-tdsc-rq2-honest-participation-v1', 'experiment-tdsc-rq4-cost-scaling-v1'}
             else expand_units(self.candidate) if profile['full_matrix'] else config['technical_units'][profile['namespace']])
         self.secrets=json.loads(Path(config['private_streams_path']).read_text())
         self.results={}; self.performance=config['performance'][profile['performance_key']]
@@ -180,6 +180,10 @@ class ScopedStudy:
         base_performance = self.config['performance'][self.profile['performance_key']]
         for group_key,group_iter in itertools.groupby(rows,key=bank_key):
             group=list(group_iter); seed,anchor,steps,size,invalid=group_key
+            production_count={r.get('production_count',32) for r in group}
+            if len(production_count)!=1:
+                raise ValueError('one source bank serves one registered production count')
+            production_count=production_count.pop()
             if not self.before_group(context, group_key, group):
                 continue
             self.performance = workload_performance(base_performance, steps, size)
@@ -210,7 +214,8 @@ class ScopedStudy:
             began=time.monotonic(); prefix_cpu_started=time.process_time()
             restored=self.restored_source_group(context,group_id)
             donor_key=(seed,anchor,steps,size,namespace,tuple(partition))
-            donor=source_donors.get(donor_key) if invalid==1 else None
+            # Paired-validity reuse derives exactly one of forty sources.
+            donor=source_donors.get(donor_key) if invalid==1 and production_count==32 else None
             source_reuse=None
             if restored is None and donor is not None:
                 from sevc.experiments.source_variants import derive_one_invalid_bank
@@ -232,6 +237,7 @@ class ScopedStudy:
                 bank,source_rows,cache=build_source_bank(context,seed=seed,namespace=namespace,partition=partition,
                     steps=steps,batch_size=size,invalid_count=invalid,clock=self.clock,initial_state=initial,
                     initial_momentum=momentum,scratch_dir=scratch,initial_rng=initial_rng,
+                    count=production_count+8,population=production_count+8,
                     access_profile=self.performance.get("tensor_access", "strict"),
                     capture_compact_headers=self.performance.get("compact_source_headers", False))
                 prefix=time.monotonic()-began
@@ -278,7 +284,8 @@ class ScopedStudy:
                         self.clock.context['phase_scope']='pairing-fixture'
                         fixture=OnlineJob(bank=bank,context=context,clock=self.clock,performance=self.performance,
                             job_id=group_id+'-fixture',method_key=(self.science['methods']['R'] if self.claim_linked else 'rcmp-probe-source-v2'),role_secret=role_secret,
-                            emit=self.records,delivery_scratch_dir=None,prepare_only=True)
+                            emit=self.records,delivery_scratch_dir=None,prepare_only=True,
+                            production_count=production_count)
                         targets=fixture.production_source_ids if fixture.issued else None
                         del fixture; gc.collect()
                         self.clock.context['phase_scope']='online'
@@ -315,7 +322,7 @@ class ScopedStudy:
                             job_id=unit.get('public_job_binding',uid)+'-'+suffix,method_key=method,role_secret=role_secret,emit=self.records,
                             paired_production=targets if comparator else None,gold_factory=gold,
                             delivery_scratch_dir=folder if disk_delivery else None,
-                            prepare_only=unit['package']=='M0')
+                            prepare_only=unit['package']=='M0',production_count=production_count)
                         if self.performance.get('trim_cpu_arenas',False):
                             from sevc.core.runtime import release_process_memory
                             release_process_memory(cuda=False)

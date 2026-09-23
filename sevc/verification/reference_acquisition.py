@@ -39,7 +39,7 @@ class JobReferences:
         return dict(self._receipts[source_sha256])
 
 
-def acquire_probe_sources(source_ids, *, secret_hex, references: JobReferences):
+def acquire_probe_sources(source_ids, *, secret_hex, references: JobReferences, population=40):
     """Commit private priority, then stop at eight replay-valid sources or forty.
 
     If fewer than eight pass, the failed owner replays reject the job.
@@ -48,7 +48,8 @@ def acquire_probe_sources(source_ids, *, secret_hex, references: JobReferences):
     failures. Unselected identities, including failed attempts, remain production.
     """
     ids = tuple(source_ids)
-    if len(ids) != 40 or len(set(ids)) != 40:
+    # The registered population is forty; larger jobs keep the same eight probe sources.
+    if population < 40 or len(ids) != population or len(set(ids)) != population:
         raise ValueError("the frozen source population is forty distinct identities")
     if len(bytes.fromhex(secret_hex)) != 32:
         raise ValueError("private role seed must have 256 bits")

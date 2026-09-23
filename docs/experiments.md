@@ -35,6 +35,7 @@ is a public projection that runs as a non-formal standalone study after
 
 | Question / analysis | Main implementation |
 |---|---|
+| End-to-end settlement comparison (existing rules, ablations, SEVC and single-verifier SEVC; reference-replay residuals) | `evaluation/end_to_end_comparison.py`, `committee/executed_recovery.py` |
 | RQ1 detection, verifier view and native comparison | `verification/on_demand_service.py`, `verification/replay_coupled_probes.py`, `evaluation/verifier_view_linkability.py`, `committee/depol_arbitration.py`, `verification/depol_local.py`, `evaluation/depol_shared_shortcut.py` |
 | RQ2 incentives and bond sensitivity | `evaluation/f_rq234_audit.py`, `evaluation/cost_incentive_reanalysis.py` |
 | RQ3 settlement and recovery | `committee/executed_recovery.py`, `experiments/recovery_enumeration.py`, `evaluation/value_preserving_recovery.py` |
